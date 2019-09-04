@@ -1,0 +1,25 @@
+{
+  "name": "prosjektoppgave",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chai": "^4.2.0",
+    "d3": "^5.10.0",
+    "mocha": "^6.2.0",
+    "nodemon": "^1.19.1",
+    "ramda": "^0.26.1",
+    "rewire": "^4.0.1",
+    "sinon": "^7.4.1",
+    "sinon-chai": "^3.3.0",
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.7",
+    "webpack-dev-server": "^3.8.0"
+  }
+}
