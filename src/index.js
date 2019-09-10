@@ -15,10 +15,13 @@ const renderer = new THREE.WebGLRenderer()
 new OrbitControls(camera)
 
 const pipes = [
-  { angle: 0,           length: 2 },
-  { angle: Math.PI / 4, length: 3 },
-  { angle: Math.PI / 2, length: 4 },
-  { angle: Math.PI / 4, length: 5 }
+  { angle: 0,               length: 4   },
+  { angle: 1 * Math.PI / 8, length: 0.5 },
+  { angle: 1 * Math.PI / 4, length: 0.5 },
+  { angle: 3 * Math.PI / 8, length: 0.5 },
+  { angle: 1 * Math.PI / 2, length: 2   },
+  { angle: 3 * Math.PI / 8, length: 0.5 },
+  { angle: 1 * Math.PI / 4, length: 4   }
 ]
 
 const meshes = createCylinderMeshes(pipes)
@@ -48,7 +51,7 @@ function createCylinderMeshes (pipes) {
   }))
 }
 
-function createCylinderMesh ({ radius = 0.5, height = 1, px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0 }) {
+function createCylinderMesh ({ radius = 0.1, height = 1, px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0 }) {
   const RADIUS_SEGMENTS = 20
   const HEIGHT_SEGMENTS = 5
   const geometry = new THREE.CylinderGeometry(radius, radius, height, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
@@ -66,7 +69,7 @@ function onresize ({ camera, renderer }) {
 }
 
 function init() {
-  camera.position.z = 3
+  camera.position.z = 10
   document.body.appendChild(renderer.domElement)
   allStats.forEach(stats => document.body.appendChild(stats.dom))
   meshes.forEach(mesh => scene.add(mesh))
