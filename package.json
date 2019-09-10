@@ -18,6 +18,8 @@
     "rewire": "^4.0.1",
     "sinon": "^7.4.1",
     "sinon-chai": "^3.3.0",
+    "stats-js": "^1.0.1",
+    "three": "^0.108.0",
     "webpack": "^4.39.2",
     "webpack-cli": "^3.3.7",
     "webpack-dev-server": "^3.8.0"

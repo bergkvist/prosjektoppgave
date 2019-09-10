@@ -1,67 +1,92 @@
-const d3 = require('d3')
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import Stats from 'stats-js'
 
-const c1 = '#F4F3EE'
-const c2 = '#231C07'
+const allStats = [0, 1, 2].map(panel => {
+  const stats = new Stats()
+  stats.dom.style.cssText = `position:absolute;top:${50*panel}px;left:${0}px;`
+  stats.showPanel(panel)
+  return stats
+})
 
-const xKey = 'Time (s)'
-const yKey = 'Bottom hole pressure (bar)'
+const camera = new THREE.PerspectiveCamera(70)
+const scene = new THREE.Scene()
+const renderer = new THREE.WebGLRenderer()
+new OrbitControls(camera)
 
-const getDomain = (data, key) => {
-  const values = data.map(({ [key]: value }) => Number(value))
-  return [d3.min(values), d3.max(values)]
+const pipes = [
+  { angle: 0,           length: 2 },
+  { angle: Math.PI / 4, length: 3 },
+  { angle: Math.PI / 2, length: 4 },
+  { angle: Math.PI / 4, length: 5 }
+]
+
+const meshes = createCylinderMeshes(pipes)
+
+function createCylinderMeshes (pipes) {
+  const vs = pipes.map(pipe => new THREE.Vector3(0, -pipe.length / 2, 0)
+    .applyEuler(new THREE.Euler(0, 0, pipe.angle)))
+
+  const ps = vs.reduce((ps, _, i) => {
+    if (i === 0) {
+      ps[i] = vs[i]
+      return ps
+    }
+  
+    ps[i] = ps[i].add(ps[i-1]).add(vs[i-1]).add(vs[i])
+    return ps
+  
+  }, vs.map(() => new THREE.Vector3(0, 0, 0)))
+
+  return ps.map((p, i) => createCylinderMesh({ 
+    px: p.x, 
+    py: p.y, 
+    pz: p.z, 
+    rz: pipes[i].angle, 
+    radius: pipes[i].radius, 
+    height: pipes[i].length
+  }))
 }
 
-function plot (data) {
-  const margins = { top: 40, right: 40, bottom: 40, left: 40 }
-  const width = window.innerWidth - margins.left - margins.right
-  const height = window.innerHeight - margins.top - margins.bottom
-
-  const svg = d3.select('#visualization').append('svg')
-    .attr('width', width + margins.left + margins.right)
-    .attr('height', height + margins.top + margins.bottom)
-
-  const x = d3.scaleLinear()
-    .domain(getDomain(data, xKey))
-    .range([margins.left, width + margins.left])
-
-  const y = d3.scaleLinear()
-    .domain(getDomain(data, yKey))
-    .range([height + margins.top, margins.top])
-
-  svg.append('g')
-    .attr('transform', `translate(${0},${height + margins.top})`)
-    .call(d3.axisBottom(x))
-
-  svg.append('g').attr('transform', `translate(${margins.left},${0})`)
-    .call(d3.axisLeft(y))
-
-  svg.append('path')
-    .datum(data)
-    .attr('fill', 'none')
-    .attr('stroke', 'red')
-    .attr('stroke-width', 1.5)
-    .attr('d', d3.line()
-      .x(d => x(d[xKey]))
-      .y(d => y(d[yKey]))
-    )
+function createCylinderMesh ({ radius = 0.5, height = 1, px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0 }) {
+  const RADIUS_SEGMENTS = 20
+  const HEIGHT_SEGMENTS = 5
+  const geometry = new THREE.CylinderGeometry(radius, radius, height, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
+  const material = new THREE.MeshNormalMaterial({ wireframe: true })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(px, py, pz)
+  mesh.rotation.set(rx, ry, rz)
+  return mesh
 }
 
-;(async () => {
-  d3.select('body')
-    .style('overflow', 'hidden')
-    .style('background-color', c1)
+function onresize ({ camera, renderer }) {
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+}
 
-  d3.select('body')
-    .append('p')
-    .text('Loading ./trends.csv')
-    .style('text-align', 'center')
-    .style('line-height', window.innerHeight + 'px')
-    .style('color', c2)
+function init() {
+  camera.position.z = 3
+  document.body.appendChild(renderer.domElement)
+  allStats.forEach(stats => document.body.appendChild(stats.dom))
+  meshes.forEach(mesh => scene.add(mesh))
+  onresize({ renderer, camera })
+  window.addEventListener('resize', () => onresize({ camera, renderer }))
+}
 
-  const trends = await d3.csv('./trends.csv')
+const animationIterator = async function * () { 
+  for (;;) {
+    const timestamp = await new Promise(resolve => requestAnimationFrame(resolve))
+    allStats.forEach(stats => stats.update())
+    renderer.render(scene, camera)
+    yield timestamp
+  }
+}
 
-  d3.select('p').remove()
+const animate = async () => {
+  for await (const _timestamp of animationIterator()) {
 
-  console.log(trends)
-  plot(trends)
-})()
+  }
+}
+init()
+animate()
