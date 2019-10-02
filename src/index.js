@@ -6,11 +6,11 @@ import * as R from 'ramda'
 import geometrydef from './geometrydef'
 
 const LENGTH_SCALING = 1 / 100
-const RADIUS_SCALING = 1 / 10
+const RADIUS_SCALING = 1
 // TODO: end piece is WRONG! Need to add the two final parts of geometrydef manually?
 // TODO: Make sea bottom only visible from below. Make ground top only visible from above.
 // TODO: Consider lowering sea level slighly to prevent flickering
-console.log(geometrydef)
+// TODO: Actually use geometrydef.txt
 
 const allStats = [0, 1, 2].map(panel => {
   const stats = new Stats()
@@ -108,8 +108,6 @@ async function getPath() {
     const groundbbox = R.clone(waterbbox)
     waterbbox.min.y = -geometrydef[0].md * LENGTH_SCALING
     groundbbox.max.y = -geometrydef[0].md * LENGTH_SCALING
-
-    console.log(waterbbox, groundbbox)
 
     createBox(waterbbox, 'blue')
     createBox(groundbbox, 'gray')

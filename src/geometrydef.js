@@ -45,4 +45,7 @@ export default [
     { name: 'pipe',                    diameter: data[12], length: data[7] - data[6] - data[4], md: data[7]                     },
     { name: 'heavy weight drill pipe', diameter: data[14], length: data[8],                     md: data[7] + data[8]           },
     { name: 'BHA',                     diameter: data[16], length: data[9],                     md: data[7] + data[8] + data[9] }
-]
+].map(d => ({
+    ...d,
+    diameter: d.diameter * 0.0254  // convert to meters
+}))
