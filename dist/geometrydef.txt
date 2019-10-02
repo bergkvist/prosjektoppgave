@@ -1,0 +1,26 @@
+8.5	# Well diameter in inches (open section)
+19.5	# Inner riser diameter in inches
+373.2	# Length of riser in meters 
+9.625	# Inner casing diameter in inches
+1930	# Length of cased section in m (approximate, casing shoe set on nearest cell interface)
+8.88	# Liner Inner Diameter
+0.00	#Liner length
+4597	# Pipe length in meters (total length is pipe length+bha length+heavy weight drill pipe length)
+100	# Heavy weight drill pipe length in meters
+42	# BHA length in meters#5192	# Total well length in meters
+4.276	# Inner pipe diameter in inches
+5.0	# Outer pipe diameter in inches
+3.0	# Inner heavy weight drill pipe diameter in inches
+6.5	# Outer heavy weight drill pipe diameter in inches
+2.25	# Inner bha diameter in inches
+6.75	# Outer bha diameter in inches
+7800	# Density of pipe material in kg/m^3
+2.068e6	# Young’s modulus for pipe material in bar (<0.0: Non-elastic drill string)
+0.3	# Poisson's ratio of pipe material
+0.29	# Static friction factor for drag force on pipe from well wall
+0.28	# Dynamic friction factor for drag force on pipe from well wall
+19992	# Weight of BHA and heavy pipe in kg
+6	# Number of segments in riser section (riser segments must be longer than heavy weight drill pipe segments)
+9	# Number of segments in heavy weight pipe
+4	# Number of segments in bha
+0#1	# Index at location of HeaveLock within bha (No HeaveLock=0

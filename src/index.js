@@ -3,6 +3,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import Stats from 'stats-js'
 import { dsv } from 'd3'
 import * as R from 'ramda'
+import geometrydef from './geometrydef'
+
+const LENGTH_SCALING = 1 / 100
+const RADIUS_SCALING = 1 / 10
+// TODO: end piece is WRONG! Need to add the two final parts of geometrydef manually?
+// TODO: Make sea bottom only visible from below. Make ground top only visible from above.
+// TODO: Consider lowering sea level slighly to prevent flickering
+console.log(geometrydef)
 
 const allStats = [0, 1, 2].map(panel => {
   const stats = new Stats()
@@ -11,10 +19,12 @@ const allStats = [0, 1, 2].map(panel => {
   return stats
 })
 
-const camera = new THREE.PerspectiveCamera(70)
+const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 10000)
 const scene = new THREE.Scene()
 const renderer = new THREE.WebGLRenderer()
-new OrbitControls(camera)
+const controls = new OrbitControls(camera)
+
+controls.target.y = -10
 
 const addLight = (x, y, z)  => {
   const light = new THREE.DirectionalLight(0xFFFFFF, 1)
@@ -24,11 +34,12 @@ const addLight = (x, y, z)  => {
 }
 addLight(20,20,20)
 addLight(-10,-10,-10)
+addLight(0, -5, 0)
 
 async function getPath() {
   const path = await dsv(';', './well_path.csv')
   return R.tail(path.map(segment => ({
-    md: Number(segment['Md']) / 100,
+    md: Number(segment['Md']),
     inc: Number(segment['Inc']) * Math.PI / 180,
     azi: Number(segment['Azi']) * Math.PI / 180
   })).map((segment, i, arr) => ((i === 0) ? null : {
@@ -39,44 +50,84 @@ async function getPath() {
 
 ;(async () => {
   const pipes = await getPath()
-  
-  console.log(pipes)/*
-  const pipes = [
-    { inc: 0,               azi: 0, length: 4   },
-    { inc: 1 * Math.PI / 8, azi: 0, length: 0.5 },
-    { inc: 1 * Math.PI / 4, azi: 0, length: 0.5 },
-    { inc: 3 * Math.PI / 8, azi: 0, length: 0.5 },
-    { inc: 1 * Math.PI / 2, azi: 0, length: 2   },
-    { inc: 3 * Math.PI / 8, azi: 0, length: 0.5 },
-    { inc: 1 * Math.PI / 4, azi: 0, length: 4   }
-  ]*/
+  createCylinderMeshes(pipes)
 
-  const meshes = [...createWaterBox(10), ...createCylinderMeshes(pipes)]
+  function getBoundingBox (points) {
+    const boundingBox = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }
+    for (const p of points) {
+      if (p.x > boundingBox.max.x) boundingBox.max.x = p.x
+      else if (p.x < boundingBox.min.x) boundingBox.min.x = p.x
+
+      if (p.y > boundingBox.max.y) boundingBox.max.y = p.y
+      else if (p.y < boundingBox.min.y) boundingBox.min.y = p.y
+
+      if (p.z > boundingBox.max.z) boundingBox.max.z = p.z
+      else if (p.z < boundingBox.min.z) boundingBox.min.z = p.z
+    }
+    return boundingBox
+  }
+
+  function createBox (boundingBox, color) {
+    const dx = (boundingBox.max.x - boundingBox.min.x)
+    const dy = (boundingBox.max.y - boundingBox.min.y)
+    const dz = (boundingBox.max.z - boundingBox.min.z)
+    const x =  (boundingBox.max.x + boundingBox.min.x) / 2
+    const y =  (boundingBox.max.y + boundingBox.min.y) / 2
+    const z =  (boundingBox.max.z + boundingBox.min.z) / 2
+    const geometry = new THREE.BoxGeometry(dx, dy, dz)
+    return [THREE.FrontSide, THREE.BackSide].map(side => {
+      const material = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(color),
+        opacity: 0.5,
+        transparent: true,
+        side
+      })
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.position.set(x, y, z)
+      scene.add(mesh)
+      return mesh
+    })
+  }
 
   function createCylinderMeshes (pipes) {
-    const vs = pipes.map(pipe => new THREE.Vector3(0, -pipe.length / 2, 0)
+    const vectors = pipes.map(pipe => new THREE.Vector3(0, -pipe.length / 2 * LENGTH_SCALING, 0)
       .applyEuler(new THREE.Euler(0, pipe.azi, pipe.inc)))
 
-    const ps = vs.reduce((ps, _, i) => {
+    const positions = vectors.reduce((positions, _, i) => {
       if (i === 0) {
-        ps[i] = vs[i]
-        return ps
+        positions[i] = vectors[i]
+        return positions
       }
     
-      ps[i] = ps[i].add(ps[i-1]).add(vs[i-1]).add(vs[i])
-      return ps
+      positions[i] = positions[i].add(positions[i-1]).add(vectors[i-1]).add(vectors[i])
+      return positions
     
-    }, vs.map(() => new THREE.Vector3(0, 0, 0)))
+    }, vectors.map(() => new THREE.Vector3(0, 0, 0)))
+    
+    const waterbbox = getBoundingBox(positions)
+    const groundbbox = R.clone(waterbbox)
+    waterbbox.min.y = -geometrydef[0].md * LENGTH_SCALING
+    groundbbox.max.y = -geometrydef[0].md * LENGTH_SCALING
 
+    console.log(waterbbox, groundbbox)
+
+    createBox(waterbbox, 'blue')
+    createBox(groundbbox, 'gray')
+
+    const radiuses = pipes.map(pipe => {
+      for (const casing of geometrydef)
+        if (pipe.md <= casing.md)
+          return casing.diameter / 2
+    })
     
-    return ps.map((p, i) => createCylinderMesh({ 
+    return positions.map((p, i) => createCylinderMesh({ 
       px: p.x, 
       py: p.y, 
       pz: p.z,
       ry: pipes[i].azi,
       rz: pipes[i].inc,
-      radius: pipes[i].radius, 
-      height: pipes[i].length
+      radius: radiuses[i] * RADIUS_SCALING,
+      height: pipes[i].length * LENGTH_SCALING
     }))
   }
 
@@ -88,22 +139,8 @@ async function getPath() {
     const mesh = new THREE.Mesh(geometry, material)
     mesh.position.set(px, py, pz)
     mesh.rotation.set(rx, ry, rz)
+    scene.add(mesh)
     return mesh
-  }
-
-  function createWaterBox (height) {
-    const geometry = new THREE.BoxGeometry(10, height, 10)
-    return [THREE.FrontSide, THREE.BackSide].map(side => {
-      const material = new THREE.MeshPhongMaterial({
-        color: new THREE.Color('blue'),
-        opacity: 0.5,
-        transparent: true,
-        side
-      })
-      const mesh = new THREE.Mesh(geometry, material)
-      mesh.position.y = -height/2 - 0.001
-      return mesh
-    })
   }
 
   function onresize ({ camera, renderer }) {
@@ -116,7 +153,6 @@ async function getPath() {
     camera.position.z = 10
     document.body.appendChild(renderer.domElement)
     allStats.forEach(stats => document.body.appendChild(stats.dom))
-    meshes.forEach(mesh => scene.add(mesh))
     onresize({ renderer, camera })
     window.addEventListener('resize', () => onresize({ camera, renderer }))
   }
