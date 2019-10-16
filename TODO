@@ -1,0 +1,21 @@
+Todo list
+
+Labels in visualization:
+    ☐ https://codepen.io/dxinteractive/pen/reNpOR
+    ☐ https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html
+    ☐ https://threejs.org/examples/css2d_label.html
+
+Visualize casing shoes and drill bit:
+    ☐ Draw kjegle
+    ☐ Find optimal size of kjegle
+
+Use color for visualizing pressure:
+    ☐ Have any kind of control over color/position
+
+@critical:
+    ☐ Actually use geometrydef.txt
+
+@high:
+    ☐ Make sea bottom only visible from below. Make ground top only visible from above.
+    ☐ Consider lowering sea level slighly to prevent flickering
+    ☐ end piece is WRONG! Need to add the two final parts of geometrydef manually?

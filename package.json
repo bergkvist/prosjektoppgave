@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "webpack-dev-server",
+    "start": "parcel src/index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,14 +14,18 @@
     "d3": "^5.10.0",
     "mocha": "^6.2.0",
     "nodemon": "^1.19.1",
+    "parcel": "^1.12.4",
     "ramda": "^0.26.1",
     "rewire": "^4.0.1",
     "sinon": "^7.4.1",
     "sinon-chai": "^3.3.0",
     "stats-js": "^1.0.1",
-    "three": "^0.108.0",
-    "webpack": "^4.39.2",
-    "webpack-cli": "^3.3.7",
-    "webpack-dev-server": "^3.8.0"
-  }
+    "three": "^0.108.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.6.4"
+  },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ]
 }
