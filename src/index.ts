@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import Stats from 'stats-js'
 import * as R from 'ramda'
 import geometrydef from './geometrydef'
@@ -21,6 +21,8 @@ function init(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, la
   window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer))
   document.body.appendChild(renderer.domElement)
   document.body.appendChild(labelRenderer.domElement)
+  labelRenderer.domElement.style.position = 'absolute'
+  labelRenderer.domElement.style.top = '0'
   for (const stats of allStats) {
     document.body.appendChild(stats.dom)
   }
@@ -52,7 +54,15 @@ scene.add(createLight(0, -5, 0))
   pipeMeshes.map(mesh => scene.add(mesh))
 
   
-  //pipeMeshes[0].add(new CSS2DObject())
+  const casingShoeDiv = document.createElement('div')
+  casingShoeDiv.className = 'label'
+  casingShoeDiv.textContent = 'casing shoe'
+  casingShoeDiv.style.marginTop = '-1em'
+  casingShoeDiv.style.color = 'white'
+  casingShoeDiv.style.backgroundColor = 'black'
+  const casingShoeLabel = new CSS2DObject(casingShoeDiv)
+  casingShoeLabel.position.set(0, 0, 0)
+  pipeMeshes[0].add(casingShoeLabel)
   
 
   const points = pathToPoints(path)
@@ -69,7 +79,7 @@ scene.add(createLight(0, -5, 0))
       const timestamp = await new Promise(resolve => requestAnimationFrame(resolve))
       allStats.forEach(stats => stats.update())
       renderer.render(scene, camera)
-      //labelRenderer.render(scene, camera)
+      labelRenderer.render(scene, camera)
       yield timestamp
     }
   }
