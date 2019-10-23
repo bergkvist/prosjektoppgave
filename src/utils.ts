@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { dsv } from 'd3'
+import { dsv, csv } from 'd3'
 import * as R from 'ramda'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
 import { GeometryDef } from './geometrydef'
@@ -11,6 +11,12 @@ export interface PathSegment { md: number, inc: number, azi: number, length: num
 export type Path = Array<PathSegment>
 export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, pipeType: string }
 export type PipeGeometry = Array<PipeSegment>
+
+export async function loadPipePressure {
+  const x = await csv(require('./data/pipepressure.csv'))
+  console.log('loaded pipe pressure...')
+  return x
+}
 
 export async function loadPath(): Promise<Path> {
   const path = await dsv(';', require('./data/well_path.csv')) as Array<RawSegment>

@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "parcel src/index.html",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "parcel src/index.html"
   },
   "author": "",
   "license": "ISC",
@@ -16,7 +15,7 @@
     "chai": "^4.2.0",
     "d3": "^5.10.0",
     "d3-scale-chromatic": "^1.5.0",
-    "mocha": "^6.2.0",
+    "mocha": "^6.2.2",
     "nodemon": "^1.19.1",
     "parcel": "^1.12.4",
     "ramda": "^0.26.1",

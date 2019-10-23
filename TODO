@@ -1,21 +1,25 @@
 Todo list
 
 Labels in visualization:
-    ☐ https://codepen.io/dxinteractive/pen/reNpOR
-    ☐ https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html
-    ☐ https://threejs.org/examples/css2d_label.html
+    ✘ https://codepen.io/dxinteractive/pen/reNpOR @cancelled(19-10-23 21:56)
+    ✘ https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html @cancelled(19-10-23 21:56)
+    ✔ https://threejs.org/examples/css2d_label.html @done(19-10-23 21:56)
 
-Visualize casing shoes and drill bit:
-    ☐ Draw kjegle
-    ☐ Find optimal size of kjegle
 
 Use color for visualizing pressure:
-    ☐ Have any kind of control over color/position
-
-@critical:
-    ☐ Actually use geometrydef.txt
+    ✔ Have any kind of control over color/position @done(19-10-23 21:51)
+    ☐ Use something else than min and max to control color scale. (consider something with pho g h)
 
 @high:
+    ☐ Actually use geometrydef.txt
+    ☐ Animated platform moving up and down due to waves.
+
+@high Timeslider:
+    ☐ Play/pause button with playback speed
+    ☐ Display current time in seconds
+    ☐ Draggable slider (similar to a youtube-video slider).
+    NOTE: When dragging, stop animation
+
+@low:
     ☐ Make sea bottom only visible from below. Make ground top only visible from above.
-    ☐ Consider lowering sea level slighly to prevent flickering
-    ✘ end piece is WRONG! Need to add the two final parts of geometrydef manually? @cancelled(19-10-23 00:25)
+    ☐ Consider lowering sea level slighly to prevent flickerin
