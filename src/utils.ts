@@ -9,7 +9,7 @@ export interface BoundingBox { min: Point, max: Point }
 interface RawSegment { 'Md': string, 'Inc': string, 'Azi': string }
 export interface PathSegment { md: number, inc: number, azi: number, length: number }
 export type Path = Array<PathSegment>
-export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number }
+export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, pipeType: string }
 export type PipeGeometry = Array<PipeSegment>
 
 export async function loadPath(): Promise<Path> {
@@ -45,9 +45,9 @@ export function createTerrainMeshes (bbox: BoundingBox, color: string): Array<TH
   
   const geometry = new THREE.BoxGeometry(dx, dy, dz)
   return [THREE.FrontSide, THREE.BackSide].map(side => {
-    const material = new THREE.MeshPhongMaterial({
+    const material = new THREE.MeshBasicMaterial({
       color: new THREE.Color(color),
-      opacity: 0.5,
+      opacity: 0.2,
       transparent: true,
       side
     })
@@ -68,7 +68,7 @@ export function createPipeMesh (pipeSegment: PipeSegment): THREE.Mesh {
   const HEIGHT_SEGMENTS = 5
   const { position, rotation, length, radius } = pipeSegment
   const geometry = new THREE.CylinderGeometry(radius, radius, length, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
-  const material = new THREE.MeshNormalMaterial()
+  const material = new THREE.MeshPhysicalMaterial({ color: 'blue' })
   const mesh = new THREE.Mesh(geometry, material)
   mesh.position.set(position.x, position.y, position.z)
   mesh.rotation.set(rotation.x, rotation.y, rotation.z)
@@ -77,18 +77,20 @@ export function createPipeMesh (pipeSegment: PipeSegment): THREE.Mesh {
 
 export function createPipeGeometry(path: Path, geometrydef: GeometryDef): PipeGeometry {
   const points = pathToPoints(path)
-  const radiuses = path.map(pathSegment => {
+  const data = path.map(pathSegment => {
     for (const geometrySegment of geometrydef) {
       if (pathSegment.md <= geometrySegment.md)
-        return geometrySegment.diameter / 2
+        return { radius: geometrySegment.diameter / 2, name: geometrySegment.name }
     }
+    return { name: '', radius: 0 }
   })
   return points.map((position, i) => ({
     position,
     rotation: { x: 0, y: path[i].azi, z: path[i].inc },
-    radius: radiuses[i] * RADIUS_SCALING,
+    radius: data[i].radius * RADIUS_SCALING,
     length: path[i].length * LENGTH_SCALING,
-    md: path[i].md
+    md: path[i].md,
+    pipeType: data[i].name
   }))
 }
 

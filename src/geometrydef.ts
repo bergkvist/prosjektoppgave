@@ -42,13 +42,10 @@ export interface GeometrySegment { name: string, diameter: number, length: numbe
 export type GeometryDef = Array<GeometrySegment>
 
 export default [
-    { name: 'riser',                   diameter: data[1],  length: data[2],                     md: data[2]                     },
-    { name: 'cased section',           diameter: data[3],  length: data[4] - data[2],           md: data[4]                     },
-    { name: 'liner',                   diameter: data[5],  length: data[6],                     md: data[4] + data[6]           },
-    /*{ name: 'pipe',                    diameter: data[12], length: data[7] - data[6] - data[4], md: data[7]                     },
-    { name: 'heavy weight drill pipe', diameter: data[14], length: data[8],                     md: data[7] + data[8]           },
-    { name: 'BHA',                     diameter: data[16], length: data[9],                     md: data[7] + data[8] + data[9] }*/
-    { name: 'open hole',               diameter: data[0],  length: data[10] - data[4] - data[6], md: data[10] }
+    { name: 'riser',         diameter: data[1],  length: data[2],                      md: data[2]           },
+    { name: 'cased section', diameter: data[3],  length: data[4] - data[2],            md: data[4]           },
+    { name: 'liner',         diameter: data[5],  length: data[6],                      md: data[4] + data[6] },
+    { name: 'open hole',     diameter: data[0],  length: data[10] - data[4] - data[6], md: data[10]          }
 ].map(d => ({
     ...d,
     diameter: d.diameter * 0.0254  // convert to meters

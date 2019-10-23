@@ -18,4 +18,4 @@ Use color for visualizing pressure:
 @high:
     ☐ Make sea bottom only visible from below. Make ground top only visible from above.
     ☐ Consider lowering sea level slighly to prevent flickering
-    ☐ end piece is WRONG! Need to add the two final parts of geometrydef manually?
+    ✘ end piece is WRONG! Need to add the two final parts of geometrydef manually? @cancelled(19-10-23 00:25)

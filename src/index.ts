@@ -6,7 +6,20 @@ import * as R from 'ramda'
 import geometrydef from './geometrydef'
 import { getBoundingBox, createTerrainMeshes, loadPath, createLight, pathToPoints, createPipeGeometry, createPipeMesh } from './utils'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
+import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
 console.log(geometrydef)
+
+function createLabel(text, offsetY) {
+  const casingShoeDiv = document.createElement('div')
+  casingShoeDiv.className = 'label'
+  casingShoeDiv.textContent = text
+  casingShoeDiv.style.marginTop = '-1em'
+  casingShoeDiv.style.color = 'white'
+  casingShoeDiv.style.backgroundColor = 'black'
+  const casingShoeLabel = new CSS2DObject(casingShoeDiv)
+  casingShoeLabel.position.set(0, offsetY, 0)
+  return casingShoeLabel
+}
 
 function onresize (camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -48,22 +61,28 @@ scene.add(createLight(0, -5, 0))
 
 ;(async () => {
   const path = await loadPath()
-  const pipeMeshes = createPipeGeometry(path, geometrydef)
-    .map(createPipeMesh)
-  
+  const pipeGeometry = createPipeGeometry(path, geometrydef)
+  const pipeMeshes = pipeGeometry.map(createPipeMesh)
   pipeMeshes.map(mesh => scene.add(mesh))
+  
+  // Add labels and casing shoe viz
+  let previousType = pipeGeometry[0].pipeType
+  pipeGeometry.forEach((value, index, array) => {
+    if (value.pipeType !== previousType) {
+      const previous = array[index - 1]
 
-  
-  const casingShoeDiv = document.createElement('div')
-  casingShoeDiv.className = 'label'
-  casingShoeDiv.textContent = 'casing shoe'
-  casingShoeDiv.style.marginTop = '-1em'
-  casingShoeDiv.style.color = 'white'
-  casingShoeDiv.style.backgroundColor = 'black'
-  const casingShoeLabel = new CSS2DObject(casingShoeDiv)
-  casingShoeLabel.position.set(0, 0, 0)
-  pipeMeshes[0].add(casingShoeLabel)
-  
+      const geometry = new THREE.RingGeometry(previous.radius * 3.5, previous.radius * 4.5, 32)
+      const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 'gray' })
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.position.set(0, -previous.length / 2, 0)
+      mesh.rotation.set(Math.PI / 2, 0, 0)
+      
+      pipeMeshes[index - 1].add(mesh)
+      pipeMeshes[index - 1].add(createLabel(`end of ${previousType}`, -previous.length / 2))
+
+      previousType = value.pipeType
+    }
+  })  
 
   const points = pathToPoints(path)
   const waterbbox = getBoundingBox(points)
@@ -80,14 +99,20 @@ scene.add(createLight(0, -5, 0))
       allStats.forEach(stats => stats.update())
       renderer.render(scene, camera)
       labelRenderer.render(scene, camera)
-      yield timestamp
+      yield timestamp as number
     }
   }
+  //@ts-ignore
+  //const colorScale = x => scaleLinear([-1, 1], ['green', 'red'])
 
   const animate = async () => {
-    for await (const _timestamp of animationIterator()) {
+    for await (const timestamp of animationIterator()) {
+      for (const i in pipeMeshes) {
+        const color = colorScale(0.5 + 0.5 * Math.sin(0.0035 * timestamp - 0.15 * Number(i)))
+        //@ts-ignore
+        pipeMeshes[i].material.color.set(color)
+      }
       // Consider making animationIterator return dt instead of timestamp.
-      // Animate pressure propagation
     }
   }
   init(camera, renderer, labelRenderer, allStats)
