@@ -7,12 +7,12 @@ import { GeometryDef } from './geometrydef'
 export interface Point { x: number, y: number, z: number }
 export interface BoundingBox { min: Point, max: Point }
 interface RawSegment { 'Md': string, 'Inc': string, 'Azi': string }
-export interface PathSegment { md: number, inc: number, azi: number, length: number }
+export interface PathSegment { md: number, inc: number, azi: number, tvd: number, length: number }
 export type Path = Array<PathSegment>
-export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, pipeType: string }
+export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, tvd: number, pipeType: string }
 export type PipeGeometry = Array<PipeSegment>
 
-export async function loadPipePressure {
+export async function loadPipePressure() {
   const x = await csv(require('./data/pipepressure.csv'))
   console.log('loaded pipe pressure...')
   return x
@@ -22,8 +22,9 @@ export async function loadPath(): Promise<Path> {
   const path = await dsv(';', require('./data/well_path.csv')) as Array<RawSegment>
   return R.tail(path.map(segment => ({
     md: Number(segment['Md']),
+    tvd: Number(segment['Tvd']),
     inc: Number(segment['Inc']) * Math.PI / 180,
-    azi: Number(segment['Azi']) * Math.PI / 180
+    azi: Number(segment['Azi']) * Math.PI / 180,
   })).map((segment, i, arr) => ((i === 0) ? null : {
     length: arr[i].md - arr[i-1].md,
     ...segment
@@ -96,7 +97,8 @@ export function createPipeGeometry(path: Path, geometrydef: GeometryDef): PipeGe
     radius: data[i].radius * RADIUS_SCALING,
     length: path[i].length * LENGTH_SCALING,
     md: path[i].md,
-    pipeType: data[i].name
+    tvd: path[i].tvd,
+    pipeType: data[i].name,
   }))
 }
 
