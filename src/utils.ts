@@ -75,8 +75,7 @@ export function createPipeMesh (pipeSegment: PipeSegment): THREE.Mesh {
   const HEIGHT_SEGMENTS = 5
   const { position, rotation, length, radius } = pipeSegment
   const geometry = new THREE.CylinderGeometry(radius, radius, length, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
-  const material = new THREE.MeshPhysicalMaterial({ color: 'blue' })
-  const mesh = new THREE.Mesh(geometry, material)
+  const mesh = new THREE.Mesh(geometry, new THREE.Material())
   mesh.position.set(position.x, position.y, position.z)
   mesh.rotation.set(rotation.x, rotation.y, rotation.z)
   return mesh
