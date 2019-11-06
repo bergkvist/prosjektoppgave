@@ -18,7 +18,8 @@
     "parcel": "^1.12.4",
     "ramda": "^0.26.1",
     "stats-js": "^1.0.1",
-    "three": "^0.108.0"
+    "three": "^0.110.0",
+    "three-bas": "^2.10.1"
   },
   "devDependencies": {
     "typescript": "^3.6.4"
