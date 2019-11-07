@@ -9,9 +9,7 @@ import geometrydef from './geometrydef'
 import { loadPath, createLight, createPipeGeometry, createPipeMesh, loadPipePressure } from './utils'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
 //import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
-import { scaleLinear } from 'd3'
-
-console.log(BAS)
+import { scaleLinear, merge } from 'd3'
 
 //@ts-ignore
 const colorScale = scaleLinear().domain([0, 0.5, 1]).range(['green', 'yellow', 'red'])
@@ -19,28 +17,57 @@ const colorScale = scaleLinear().domain([0, 0.5, 1]).range(['green', 'yellow', '
 const getAnimationData = () => Promise.all([loadPipePressure(), loadPath()]).then(([pressure, path]) => {
   const x = Object.keys(pressure[0]).map(Number)
   const pipeDepths = path.map(segment => segment.md)
-
+  const t = [0, 0, 0, 0, 0, 0, 0, 0]
+  let t0 = 0
+  t0 = performance.now()
   const steps = pressure.map(p => {
     const y = Object.values(p).map(Number)
     return pipeDepths.map(scaleLinear().domain(x).range(y))
   })
-
-  const scales = []
+  t[0] += performance.now() - t0
+  t0 = performance.now()
+  const bounds = []
   for (let i = 0; i < steps[0].length; i++) {
     let min = steps[0][i]
     let max = steps[0][i]
-    for (let t = 1; t < steps.length; t++) {
-      const p = steps[t][i]
+    for (let t = steps.length * 1 / 4; t < steps.length * 3 / 4; t++) {
+      const p = steps[Math.floor(t)][i]
       if (p < min && p !== 0) min = p
       else if (p > max) max = p
     }
 
-    const r = 0.5 * (max - min)
-    const c = 0.5 * (max + min)
-    scales.push(scaleLinear().domain([c - r, c, c + r]).range([1, 0, 1]))
+    const radius = 0.5 * (max - min)
+    const center = 0.5 * (max + min)
+    bounds.push({
+      min, 
+      max, 
+      radius, 
+      center, 
+      scale: scaleLinear()
+        .domain([min, min + radius/2, center, max - radius/2, max])
+        .range([1, .5, 0, .5, 1]),
+      color: x => [...new THREE.Color(scaleLinear()
+        .domain([min, min + radius/2, center, max - radius/2, max])
+        .range(['red', 'yellow', 'green', 'yellow', 'red'])(x)
+      ).toArray().map(x=>255*x), 0]
+    })
   }
+  t[1] += performance.now() - t0
+  t0 = performance.now()
+  const _colors = []
+  for (let t = 0; t < steps.length; t++) {
+    _colors.push(steps[t].map((x, i) => bounds[i].color(x)))
+  }
+  t[2] += performance.now() - t0
+  t0 = performance.now()
+  const width = _colors[0].length
+  const height = _colors.length
+  const colors = new THREE.DataTexture(new Uint8Array(R.flatten(_colors)), width, height, THREE.RGBAFormat)
+  t[3] += performance.now() - t0
 
-  return { steps, scales }
+  console.log(t)
+  console.log(`width: ${width}, height: ${height}`)
+  return { steps, bounds, colors, width, height }
 })
 
 function createLabel(text, position) {
@@ -90,7 +117,7 @@ renderer.gammaFactor = 2.2
 renderer.gammaOutput = true
 renderer.physicallyCorrectLights = true
 const labelRenderer = new CSS2DRenderer()
-const controls = new OrbitControls(camera, renderer.domElement)
+const controls = new OrbitControls(camera, document.querySelector('body'))
 controls.target.y = -10
 
 scene.add(createLight(20,20,20))
@@ -102,46 +129,57 @@ scene.add(createLight(0, -5, 0))
   const path = await loadPath()
   performance.mark('path_loaded')
   const pipeGeometry = createPipeGeometry(path, geometrydef)
-  { 
-    let t = 0
-    const geometries = pipeGeometry
-      .map(createPipeMesh)
-      .map((mesh, index) => {
-        const ITEM_SIZE = 1 // measure depth index
-        const NORMALIZED = false
-        mesh.updateWorldMatrix(true, false)
-        //@ts-ignore
-        const geometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry)
-        geometry.applyMatrix(mesh.matrixWorld)
-        const t0 = performance.now()
-        const mdIndices = new Uint16Array(geometry.getAttribute('position').count * ITEM_SIZE)
-        mdIndices.forEach((v, i) => { mdIndices[i] = index })
-        geometry.setAttribute('md', new THREE.Uint16BufferAttribute(mdIndices, ITEM_SIZE, NORMALIZED))
-        t += performance.now() - t0
-        return geometry
-      })
-    console.log(t)
-    
-    //@ts-ignore
-    const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries)
-    const material = new BAS.StandardAnimationMaterial({
-      vertexParameters: [
-        'uniform float x;',
-        'attribute float md;'
-      ],
-      varyingParameters: [
-        'varying vec3 vColor;',
-      ],
-      vertexColor: [
-        'vColor = (md == 0.0) ? vec3(1, 0, 0) : vec3(0, 0, 1);',
-      ],
-      fragmentDiffuse: [
-        'diffuseColor.rgb *= vColor;'
-      ]
+
+  let t = 0
+  const geometries = pipeGeometry
+    .map(createPipeMesh)
+    .map((mesh, index) => {
+      const ITEM_SIZE = 1 // measure depth index
+      const NORMALIZED = false
+      mesh.updateWorldMatrix(true, false)
+      //@ts-ignore
+      const geometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry)
+      geometry.applyMatrix(mesh.matrixWorld)
+      const t0 = performance.now()
+      const mdIndices = new Uint16Array(geometry.getAttribute('position').count * ITEM_SIZE)
+      mdIndices.forEach((v, i) => { mdIndices[i] = index })
+      geometry.setAttribute('md', new THREE.Uint16BufferAttribute(mdIndices, ITEM_SIZE, NORMALIZED))
+      t += performance.now() - t0
+      return geometry
     })
-    const mesh = new THREE.Mesh(mergedGeometry, material)
-    scene.add(mesh)
-  }
+  console.log(t)
+  const animationData = await getAnimationData()
+  console.log(animationData)
+
+  //@ts-ignore
+  const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries)
+  const material = new BAS.StandardAnimationMaterial({
+    uniforms: {
+      time: { value: 3.0 },
+      x: { value: animationData.colors },
+      width: { value: animationData.width },
+      height: { value: animationData.height }
+    },
+    vertexParameters: [
+      'uniform sampler2D x;',
+      'uniform float time;',
+      'uniform float width;',
+      'uniform float height;',
+      'attribute float md;'
+    ],
+    varyingParameters: [
+      'varying vec3 vColor;',
+    ],
+    vertexColor: [
+      'vColor = texture2D(x, vec2(md/width, time/height)).xyz;',
+    ],
+    fragmentDiffuse: [
+      'diffuseColor.rgb *= vColor;'
+    ]
+  })
+  const mesh = new THREE.Mesh(mergedGeometry, material)
+  
+  scene.add(mesh)
   
   {
     // Add labels and casing shoe viz
@@ -181,7 +219,7 @@ scene.add(createLight(0, -5, 0))
   timeDiv.style.top = '200px'
   document.body.appendChild(timeDiv)
 
-  const animationData = await getAnimationData()
+  
   
   init(camera, renderer, labelRenderer, allStats)
 
@@ -198,6 +236,8 @@ scene.add(createLight(0, -5, 0))
     tn = performance.now()
     const time = Math.round(timestamp / 10) % animationData.steps.length
     t[1] += performance.now() - tn
+    console.log()
+    mesh.material.uniforms.time.value = time
     /*
     for (const i in pipeMeshes) {
       tn = performance.now()
