@@ -6,68 +6,41 @@ import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtil
 import Stats from 'stats-js'
 import * as R from 'ramda'
 import geometrydef from './geometrydef'
-import { loadPath, createLight, createPipeGeometry, createPipeMesh, loadPipePressure } from './utils'
+import { loadPath, createLight, createPipeGeometry, createPipeMesh, loadPipePressure, loadTexture } from './utils'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
 //import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
-import { scaleLinear, merge } from 'd3'
+import { scaleLinear } from 'd3'
 
-//@ts-ignore
-const colorScale = scaleLinear().domain([0, 0.5, 1]).range(['green', 'yellow', 'red'])
+const uniform = n => R.range(0, n).map(scaleLinear().domain([0, n-1]).range([0, 1]))
 
-const getAnimationData = () => Promise.all([loadPipePressure(), loadPath()]).then(([pressure, path]) => {
-  const x = Object.keys(pressure[0]).map(Number)
-  const pipeDepths = path.map(segment => segment.md)
-  const t = [0, 0, 0, 0, 0, 0, 0, 0]
-  let t0 = 0
-  t0 = performance.now()
-  const steps = pressure.map(p => {
-    const y = Object.values(p).map(Number)
-    return pipeDepths.map(scaleLinear().domain(x).range(y))
-  })
-  t[0] += performance.now() - t0
-  t0 = performance.now()
-  const bounds = []
-  for (let i = 0; i < steps[0].length; i++) {
-    let min = steps[0][i]
-    let max = steps[0][i]
-    for (let t = steps.length * 1 / 4; t < steps.length * 3 / 4; t++) {
-      const p = steps[Math.floor(t)][i]
-      if (p < min && p !== 0) min = p
-      else if (p > max) max = p
+const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), loadTexture(require('./data/viridis.png'))]).then(([pressure, path, texture]) => {
+  const pressureKeys = Object.keys(R.head(pressure))
+  const pds = R.tail(pressureKeys).map(Number)
+  const t0 = R.head(pressureKeys)
+  const mds = path.map(x => x.md)
+  const ts = Object.values(pressure).map(x => Number(x[t0])).filter(x => !isNaN(x))
+  /**
+   * These might end up outside the range [0, 1], but this is fine,
+   * since webgl will interpolate to the closest "pixel".
+   */
+  const mdAccessors = mds.map(
+    scaleLinear()
+      .domain(pds.map(Number))
+      .range(uniform(pds.length))
+  )
+
+  const getTimeAccessor = ({ speedup = 1, timestamp }) => {
+    const time = (speedup * timestamp / 1000) % R.last(ts)
+    return {
+      time,
+      normalizedTime: scaleLinear()
+        .domain(ts)
+        .range(uniform(ts.length))
+          (time)
     }
-
-    const radius = 0.5 * (max - min)
-    const center = 0.5 * (max + min)
-    bounds.push({
-      min, 
-      max, 
-      radius, 
-      center, 
-      scale: scaleLinear()
-        .domain([min, min + radius/2, center, max - radius/2, max])
-        .range([1, .5, 0, .5, 1]),
-      color: x => [...new THREE.Color(scaleLinear()
-        .domain([min, min + radius/2, center, max - radius/2, max])
-        .range(['red', 'yellow', 'green', 'yellow', 'red'])(x)
-      ).toArray().map(x=>255*x), 0]
-    })
   }
-  t[1] += performance.now() - t0
-  t0 = performance.now()
-  const _colors = []
-  for (let t = 0; t < steps.length; t++) {
-    _colors.push(steps[t].map((x, i) => bounds[i].color(x)))
-  }
-  t[2] += performance.now() - t0
-  t0 = performance.now()
-  const width = _colors[0].length
-  const height = _colors.length
-  const colors = new THREE.DataTexture(new Uint8Array(R.flatten(_colors)), width, height, THREE.RGBAFormat)
-  t[3] += performance.now() - t0
 
-  console.log(t)
-  console.log(`width: ${width}, height: ${height}`)
-  return { steps, bounds, colors, width, height }
+  return { mdAccessors, getTimeAccessor, mds, pds, texture, ts, path }
 })
 
 function createLabel(text, position) {
@@ -83,7 +56,7 @@ function createLabel(text, position) {
 }
 
 
-function onresize (camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
+function onresize(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
   renderer.setSize(window.innerWidth, window.innerHeight)
   labelRenderer.setSize(window.innerWidth, window.innerHeight)
   camera.aspect = window.innerWidth / window.innerHeight
@@ -105,7 +78,7 @@ function init(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, la
 
 const allStats = [0, 1, 2].map(panel => {
   const stats = new Stats()
-  stats.dom.style.cssText = `position:absolute;top:${50*panel}px;left:${0}px;`
+  stats.dom.style.cssText = `position:absolute;top:${50 * panel}px;left:${0}px;`
   stats.showPanel(panel)
   return stats
 })
@@ -116,160 +89,148 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuff
 renderer.gammaFactor = 2.2
 renderer.gammaOutput = true
 renderer.physicallyCorrectLights = true
+//renderer.domElement.style.touchAction = 'none'
+window.addEventListener("touchstart",  e => e.preventDefault(), { capture: true, passive: false });
+window.addEventListener("touchmove",   e => e.preventDefault(), { capture: true, passive: false });
+window.addEventListener("touchend",    e => e.preventDefault(), { capture: true, passive: false });
+window.addEventListener("touchcancel", e => e.preventDefault(), { capture: true, passive: false });
 const labelRenderer = new CSS2DRenderer()
 const controls = new OrbitControls(camera, document.querySelector('body'))
 controls.target.y = -10
 
-scene.add(createLight(20,20,20))
-scene.add(createLight(-10,-10,-10))
+scene.add(createLight(20, 20, 20))
+scene.add(createLight(-10, -10, -10))
 scene.add(createLight(0, -5, 0))
 
-;(async () => {
-  performance.mark('main_start')
-  const path = await loadPath()
-  performance.mark('path_loaded')
-  const pipeGeometry = createPipeGeometry(path, geometrydef)
+  ; (async () => {
+    performance.mark('main_start')
+    const animationData = await getAnimationData()
+    performance.mark('resources_loaded')
+    const pipeGeometry = createPipeGeometry(animationData.path, geometrydef)
 
-  let t = 0
-  const geometries = pipeGeometry
-    .map(createPipeMesh)
-    .map((mesh, index) => {
-      const ITEM_SIZE = 1 // measure depth index
-      const NORMALIZED = false
-      mesh.updateWorldMatrix(true, false)
-      //@ts-ignore
-      const geometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry)
-      geometry.applyMatrix(mesh.matrixWorld)
-      const t0 = performance.now()
-      const mdIndices = new Uint16Array(geometry.getAttribute('position').count * ITEM_SIZE)
-      mdIndices.forEach((v, i) => { mdIndices[i] = index })
-      geometry.setAttribute('md', new THREE.Uint16BufferAttribute(mdIndices, ITEM_SIZE, NORMALIZED))
-      t += performance.now() - t0
-      return geometry
+    const geometries = pipeGeometry
+      .map(createPipeMesh)
+      .map((mesh, index) => {
+        const ITEM_SIZE = 1 // measure depth index
+        const NORMALIZED = false
+        mesh.updateWorldMatrix(true, false)
+        //@ts-ignore
+        const geometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry)
+        geometry.applyMatrix(mesh.matrixWorld)
+        const t0 = performance.now()
+        const mdIndices = new Float32Array(geometry.getAttribute('position').count * ITEM_SIZE)
+        mdIndices.forEach((v, i) => { mdIndices[i] = animationData.mdAccessors[index] })
+        geometry.setAttribute('md', new THREE.Float32BufferAttribute(mdIndices, ITEM_SIZE))
+        return geometry
+      })
+
+    //@ts-ignore
+    const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries)
+    const material = 
+    //new BAS.BasicAnimationMaterial({
+    new BAS.StandardAnimationMaterial({
+      uniforms: {
+        time: { value: 3.0 },
+        x: { value: animationData.texture }
+      },
+      vertexParameters: [
+        'uniform highp float time;',
+        'uniform sampler2D x;',
+        'attribute highp float md;',
+      ],
+      varyingParameters: [
+        'varying vec3 vColor;',
+      ],
+      vertexColor: [
+        'vColor = texture2D(x, vec2(time, md)).xyz;'
+      ],
+      fragmentDiffuse: [
+        'diffuseColor.rgb *= vColor;'
+      ],
     })
-  console.log(t)
-  const animationData = await getAnimationData()
-  console.log(animationData)
+    material.uniforms.map.value = animationData.texture
+    const mesh = new THREE.Mesh(mergedGeometry, material)
 
-  //@ts-ignore
-  const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries)
-  const material = new BAS.StandardAnimationMaterial({
-    uniforms: {
-      time: { value: 3.0 },
-      x: { value: animationData.colors },
-      width: { value: animationData.width },
-      height: { value: animationData.height }
-    },
-    vertexParameters: [
-      'uniform sampler2D x;',
-      'uniform float time;',
-      'uniform float width;',
-      'uniform float height;',
-      'attribute float md;'
-    ],
-    varyingParameters: [
-      'varying vec3 vColor;',
-    ],
-    vertexColor: [
-      'vColor = texture2D(x, vec2(md/width, time/height)).xyz;',
-    ],
-    fragmentDiffuse: [
-      'diffuseColor.rgb *= vColor;'
-    ]
-  })
-  const mesh = new THREE.Mesh(mergedGeometry, material)
-  
-  scene.add(mesh)
-  
-  {
-    // Add labels and casing shoe viz
-    const pipeChanges = pipeGeometry.reduce((result, current, i, arr) => {
-      if (i === 0) return result
-      const previous = arr[i-1]
-      if (current.pipeType !== previous.pipeType) {
-        const geometry = new THREE.RingGeometry(previous.radius * 3.5, previous.radius * 4.5, 32)
-        const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 'gray' })
-        const mesh = new THREE.Mesh(geometry, material)
-  
-        mesh.position.x = previous.position.x
-        mesh.position.y = previous.position.y - previous.length / 2
-        mesh.position.z = previous.position.z
-  
-        mesh.rotation.setFromRotationMatrix(new THREE.Matrix4()
-          .makeRotationFromEuler(new THREE.Euler(previous.rotation.x, previous.rotation.y, previous.rotation.z))
-          .multiply(new THREE.Matrix4().makeRotationX(Math.PI/2))
-        )
-  
-        result.meshes.push(mesh)
-        result.labels.push(createLabel(`end of ${previous.pipeType}`, mesh.position))
-      }
-      return result
-    }, { meshes: [], labels: [] })
-  
-    pipeChanges.meshes.map(m => scene.add(m))
-    pipeChanges.labels.map(l => scene.add(l))
-  }
+    scene.add(mesh)
 
+    {
+      // Add labels and casing shoe viz
+      const pipeChanges = pipeGeometry.reduce((result, current, i, arr) => {
+        if (i === 0) return result
+        const previous = arr[i - 1]
+        if (current.pipeType !== previous.pipeType) {
+          const geometry = new THREE.RingGeometry(previous.radius * 3.5, previous.radius * 4.5, 32)
+          const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 'gray' })
+          const mesh = new THREE.Mesh(geometry, material)
 
-  const timeDiv = document.createElement('div')
-  timeDiv.textContent = 'test'
-  timeDiv.style.color = 'white'
-  timeDiv.style.backgroundColor = 'black'
-  timeDiv.style.position = 'absolute'
-  timeDiv.style.top = '200px'
-  document.body.appendChild(timeDiv)
+          mesh.position.x = previous.position.x
+          mesh.position.y = previous.position.y - previous.length / 2
+          mesh.position.z = previous.position.z
 
-  
-  
-  init(camera, renderer, labelRenderer, allStats)
+          mesh.rotation.setFromRotationMatrix(new THREE.Matrix4()
+            .makeRotationFromEuler(new THREE.Euler(previous.rotation.x, previous.rotation.y, previous.rotation.z))
+            .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2))
+          )
 
-  const t = [0, 0, 0, 0, 0, 0, 0, 0]
-  let tn = 0
-  performance.mark('reached_render_loop')
-  performance.measure('time until first render', 'main_start', 'reached_render_loop')
-  performance.getEntriesByType('measure').map(x => console.log(x))
-  for (let i = 0;; i++) {
-    tn = performance.now()
-    const timestamp = await new Promise<number>(requestAnimationFrame)
-    t[0] += performance.now() - tn
+          result.meshes.push(mesh)
+          result.labels.push(createLabel(`end of ${previous.pipeType}`, mesh.position))
+        }
+        return result
+      }, { meshes: [], labels: [] })
 
-    tn = performance.now()
-    const time = Math.round(timestamp / 10) % animationData.steps.length
-    t[1] += performance.now() - tn
-    console.log()
-    mesh.material.uniforms.time.value = time
-    /*
-    for (const i in pipeMeshes) {
-      tn = performance.now()
-      //const color = colorScale(animationData.scales[i](animationData.steps[time][i]))
-      t[2] += performance.now() - tn
-
-      tn = performance.now()
-      //@ts-ignore
-      pipeMeshes[i].material.color.set(animationData.color[i][time])
-      t[3] += performance.now() - tn
-    }*/
-    tn = performance.now()
-    timeDiv.innerText = `time: ${time/10} s`
-    t[4] += performance.now() - tn
-
-    tn = performance.now()
-    allStats.forEach(stats => stats.update())
-    t[5] += performance.now() - tn
-
-    tn = performance.now()
-    renderer.render(scene, camera)
-    t[6] += performance.now() - tn
-
-    tn = performance.now()
-    labelRenderer.render(scene, camera)
-    t[7] += performance.now() - tn
-    
-    if (i === 1000) {
-      const sum = t.reduce((a, b) => a + b, 0)
-      console.log(t.map(x => 100 * x / sum))
+      pipeChanges.meshes.map(m => scene.add(m))
+      pipeChanges.labels.map(l => scene.add(l))
     }
 
-    //camera.position.z = 40
-  }
-})()
+
+    const timeDiv = document.createElement('div')
+    timeDiv.textContent = 'test'
+    timeDiv.style.color = 'white'
+    timeDiv.style.backgroundColor = 'black'
+    timeDiv.style.position = 'absolute'
+    timeDiv.style.top = '200px'
+    document.body.appendChild(timeDiv)
+
+
+
+    init(camera, renderer, labelRenderer, allStats)
+
+    const t = [0, 0, 0, 0, 0, 0, 0, 0]
+    let tn = 0
+    performance.mark('reached_render_loop')
+    performance.measure('time until first render', 'main_start', 'reached_render_loop')
+    performance.getEntriesByType('measure').map(x => console.log(x))
+    for (let i = 0; ; i++) {
+      tn = performance.now()
+      const timestamp = await new Promise<number>(requestAnimationFrame)
+      
+      t[0] += performance.now() - tn
+
+      tn = performance.now()
+      const { time, normalizedTime } =  animationData.getTimeAccessor({ timestamp, speedup: 3 })
+      t[1] += performance.now() - tn
+      //@ts-ignore
+      mesh.material.uniforms.time.value = normalizedTime
+      
+      tn = performance.now()
+      timeDiv.innerText = `time: ${Math.round(10*time)/10} s`
+      t[4] += performance.now() - tn
+
+      tn = performance.now()
+      allStats.forEach(stats => stats.update())
+      t[5] += performance.now() - tn
+
+      tn = performance.now()
+      renderer.render(scene, camera)
+      t[6] += performance.now() - tn
+
+      tn = performance.now()
+      labelRenderer.render(scene, camera)
+      t[7] += performance.now() - tn
+
+      if (i === 1000) {
+        const sum = t.reduce((a, b) => a + b, 0)
+        console.log(t.map(x => 100 * x / sum))
+      }
+    }
+  })()
