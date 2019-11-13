@@ -3,6 +3,7 @@ import { dsv, csv } from 'd3'
 import * as R from 'ramda'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
 import { GeometryDef } from './geometrydef'
+import PNGReader from 'png.js'
 
 export interface Point { x: number, y: number, z: number }
 export interface BoundingBox { min: Point, max: Point }
@@ -12,10 +13,31 @@ export type Path = Array<PathSegment>
 export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, tvd: number, pipeType: string }
 export type PipeGeometry = Array<PipeSegment>
 
-export async function loadPipePressure() {
-  const x = await csv(require('./data/pipepressure.csv'))
-  console.log('loaded pipe pressure...')
-  return x
+export async function loadTexture(image = require('./data/inferno.png')) {
+  const png = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', image, true)
+    xhr.responseType = 'arraybuffer'
+    xhr.onload = function(e) {
+      if (this.status === 200) {
+        const reader = new PNGReader(this.response)
+        reader.parse((err, png) => {
+          if (err) reject(err)
+          resolve(png)
+        })
+      }
+    }
+    xhr.send()
+  })
+
+  //@ts-ignore
+  const texture: THREE.DataTexture = new THREE.DataTexture(png.pixels, png.width, png.height, THREE.RGBAFormat)
+  return texture
+}
+
+export function loadPipePressure() {
+  return csv(require('./data/pipepressure.csv'))
+    .then(x => { console.log('loaded pipe pressure'); return x })
 }
 
 export async function loadPath(): Promise<Path> {
@@ -71,12 +93,11 @@ export function createLight (x: number, y: number, z: number): THREE.Directional
 }
 
 export function createPipeMesh (pipeSegment: PipeSegment): THREE.Mesh {
+  const { position, rotation, length, radius } = pipeSegment
   const RADIUS_SEGMENTS = 20
   const HEIGHT_SEGMENTS = 5
-  const { position, rotation, length, radius } = pipeSegment
   const geometry = new THREE.CylinderGeometry(radius, radius, length, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
-  const material = new THREE.MeshPhysicalMaterial({ color: 'blue' })
-  const mesh = new THREE.Mesh(geometry, material)
+  const mesh = new THREE.Mesh(geometry, new THREE.Material())
   mesh.position.set(position.x, position.y, position.z)
   mesh.rotation.set(rotation.x, rotation.y, rotation.z)
   return mesh
