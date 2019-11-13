@@ -1,7 +1,64 @@
-body {
+html, body {
     margin: 0;
+    padding: 0;
     height: 100vh;
     overflow: hidden;
-    padding-right: 15px;
     position: fixed;
+    background-color: black;
+}
+
+/* The slider itself */
+.slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    width: 85%; /* Full-width */
+    height: 5vh; /* Specified height */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .1s; /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+    border-radius: 0;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */ 
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 2px; /* Set a specific slider handle width */
+    height: 5vh; /* Slider handle height */
+    background: black; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    width: 2px; /* Set a specific slider handle width */
+    height: 5vh; /* Slider handle height */
+    background: black; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+canvas, input {
+    margin: 0;
+    padding: 0;
+}
+
+input {
+    float: left;
+}
+
+#timestamp {
+    left: 95vw;
+    height: 5vh;
+    width: 15vw;
+    background-color: #111111;
+    color: white;
+    float: left;
+    justify-content: center;
+    display: flex;
+    align-items: center;
 }

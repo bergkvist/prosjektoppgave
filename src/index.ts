@@ -8,25 +8,28 @@ import * as R from 'ramda'
 import geometrydef from './geometrydef'
 import { loadPath, createLight, createPipeGeometry, createPipeMesh, loadPipePressure, loadTexture } from './utils'
 import { LENGTH_SCALING, RADIUS_SCALING } from './config'
+import Timeline from './Timeline'
 //import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
 import { scaleLinear } from 'd3'
 
-const uniform = n => R.range(0, n).map(scaleLinear().domain([0, n-1]).range([0, 1]))
+const timeline = new Timeline(document.getElementById('timeline') as HTMLInputElement)
+timeline.setImage(require('./data/inferno.png'))
 
-const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), loadTexture(require('./data/viridis.png'))]).then(([pressure, path, texture]) => {
+const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), loadTexture(require('./data/inferno.png'))]).then(([pressure, path, texture]) => {
+  const normalizedRange = length => R.range(0, length).map(scaleLinear().domain([0, length-1]).range([0, 1]))
   const pressureKeys = Object.keys(R.head(pressure))
-  const pds = R.tail(pressureKeys).map(Number)
+  const pressureDepths = R.tail(pressureKeys).map(Number)
+  const geometryDepths = path.map(x => x.md)
   const t0 = R.head(pressureKeys)
-  const mds = path.map(x => x.md)
   const ts = Object.values(pressure).map(x => Number(x[t0])).filter(x => !isNaN(x))
   /**
    * These might end up outside the range [0, 1], but this is fine,
    * since webgl will interpolate to the closest "pixel".
    */
-  const mdAccessors = mds.map(
+  const mdAccessors = geometryDepths.map(
     scaleLinear()
-      .domain(pds.map(Number))
-      .range(uniform(pds.length))
+      .domain(pressureDepths.map(Number))
+      .range(normalizedRange(pressureDepths.length))
   )
 
   const getTimeAccessor = ({ speedup = 1, timestamp }) => {
@@ -35,12 +38,12 @@ const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), load
       time,
       normalizedTime: scaleLinear()
         .domain(ts)
-        .range(uniform(ts.length))
+        .range(normalizedRange(ts.length))
           (time)
     }
   }
 
-  return { mdAccessors, getTimeAccessor, mds, pds, texture, ts, path }
+  return { mdAccessors, getTimeAccessor, texture, ts, path }
 })
 
 function createLabel(text, position) {
@@ -55,25 +58,12 @@ function createLabel(text, position) {
   return casingShoeLabel
 }
 
-
 function onresize(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
-  renderer.setSize(window.innerWidth, window.innerHeight)
-  labelRenderer.setSize(window.innerWidth, window.innerHeight)
-  camera.aspect = window.innerWidth / window.innerHeight
+  renderer.setSize(window.innerWidth, window.innerHeight * 0.95)
+  labelRenderer.setSize(window.innerWidth, window.innerHeight * 0.95)
+  timeline.onresize()
+  camera.aspect = window.innerWidth / (window.innerHeight * 0.95)
   camera.updateProjectionMatrix()
-}
-
-function init(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer, allStats: Array<Stats>) {
-  camera.position.z = 10
-  onresize(camera, renderer, labelRenderer)
-  window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer))
-  document.body.appendChild(renderer.domElement)
-  document.body.appendChild(labelRenderer.domElement)
-  labelRenderer.domElement.style.position = 'absolute'
-  labelRenderer.domElement.style.top = '0'
-  for (const stats of allStats) {
-    document.body.appendChild(stats.dom)
-  }
 }
 
 const allStats = [0, 1, 2].map(panel => {
@@ -81,22 +71,37 @@ const allStats = [0, 1, 2].map(panel => {
   stats.dom.style.cssText = `position:absolute;top:${50 * panel}px;left:${0}px;`
   stats.showPanel(panel)
   return stats
-})
+}).filter(() => false)
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 10000)
 const scene = new THREE.Scene()
-const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' })
+const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance', canvas: document.getElementById('3d-view') as HTMLCanvasElement })
+const labelRenderer = new CSS2DRenderer()
+const controls = new OrbitControls(camera, labelRenderer.domElement)
+
+// This should make sure colors are more accurate
 renderer.gammaFactor = 2.2
 renderer.gammaOutput = true
 renderer.physicallyCorrectLights = true
-//renderer.domElement.style.touchAction = 'none'
-window.addEventListener("touchstart",  e => e.preventDefault(), { capture: true, passive: false });
-window.addEventListener("touchmove",   e => e.preventDefault(), { capture: true, passive: false });
-window.addEventListener("touchend",    e => e.preventDefault(), { capture: true, passive: false });
-window.addEventListener("touchcancel", e => e.preventDefault(), { capture: true, passive: false });
-const labelRenderer = new CSS2DRenderer()
-const controls = new OrbitControls(camera, document.querySelector('body'))
+
+// This makes the app more mobile friendly (since the default touch gestures are prevented)
+window.addEventListener("touchstart",  e => e.preventDefault(), { capture: true, passive: false })
+window.addEventListener("touchmove",   e => e.preventDefault(), { capture: true, passive: false })
+window.addEventListener("touchend",    e => e.preventDefault(), { capture: true, passive: false })
+window.addEventListener("touchcancel", e => e.preventDefault(), { capture: true, passive: false })
+
+camera.position.set(10, -10, 25)
+controls.target.set(10, -10, 0)
 controls.target.y = -10
+onresize(camera, renderer, labelRenderer)
+window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer))
+//document.body.appendChild(renderer.domElement)
+document.body.appendChild(labelRenderer.domElement)
+labelRenderer.domElement.style.position = 'absolute'
+labelRenderer.domElement.style.top = '0'
+for (const stats of allStats) {
+  document.body.appendChild(stats.dom)
+}
 
 scene.add(createLight(20, 20, 20))
 scene.add(createLight(-10, -10, -10))
@@ -129,6 +134,7 @@ scene.add(createLight(0, -5, 0))
     const material = 
     //new BAS.BasicAnimationMaterial({
     new BAS.StandardAnimationMaterial({
+    //new BAS.PhongAnimationMaterial({
       uniforms: {
         time: { value: 3.0 },
         x: { value: animationData.texture }
@@ -182,55 +188,20 @@ scene.add(createLight(0, -5, 0))
       pipeChanges.labels.map(l => scene.add(l))
     }
 
+    const timeDiv = document.getElementById('timestamp')
 
-    const timeDiv = document.createElement('div')
-    timeDiv.textContent = 'test'
-    timeDiv.style.color = 'white'
-    timeDiv.style.backgroundColor = 'black'
-    timeDiv.style.position = 'absolute'
-    timeDiv.style.top = '200px'
-    document.body.appendChild(timeDiv)
-
-
-
-    init(camera, renderer, labelRenderer, allStats)
-
-    const t = [0, 0, 0, 0, 0, 0, 0, 0]
-    let tn = 0
     performance.mark('reached_render_loop')
     performance.measure('time until first render', 'main_start', 'reached_render_loop')
     performance.getEntriesByType('measure').map(x => console.log(x))
     for (let i = 0; ; i++) {
-      tn = performance.now()
       const timestamp = await new Promise<number>(requestAnimationFrame)
-      
-      t[0] += performance.now() - tn
-
-      tn = performance.now()
       const { time, normalizedTime } =  animationData.getTimeAccessor({ timestamp, speedup: 3 })
-      t[1] += performance.now() - tn
+      timeline.input.value = String(time)
       //@ts-ignore
       mesh.material.uniforms.time.value = normalizedTime
-      
-      tn = performance.now()
-      timeDiv.innerText = `time: ${Math.round(10*time)/10} s`
-      t[4] += performance.now() - tn
-
-      tn = performance.now()
+      timeDiv.innerText = `${Math.round(10*time)/10} s`
       allStats.forEach(stats => stats.update())
-      t[5] += performance.now() - tn
-
-      tn = performance.now()
       renderer.render(scene, camera)
-      t[6] += performance.now() - tn
-
-      tn = performance.now()
       labelRenderer.render(scene, camera)
-      t[7] += performance.now() - tn
-
-      if (i === 1000) {
-        const sum = t.reduce((a, b) => a + b, 0)
-        console.log(t.map(x => 100 * x / sum))
-      }
     }
   })()

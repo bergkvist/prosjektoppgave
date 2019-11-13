@@ -31,7 +31,7 @@ export async function loadTexture(image = require('./data/inferno.png')) {
   })
 
   //@ts-ignore
-  const texture: THREE.DataTexture = new THREE.DataTexture(png.pixels, png.width, png.height, THREE.RGBAFormat)  
+  const texture: THREE.DataTexture = new THREE.DataTexture(png.pixels, png.width, png.height, THREE.RGBAFormat)
   return texture
 }
 
