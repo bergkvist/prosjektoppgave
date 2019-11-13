@@ -95,7 +95,6 @@ controls.target.set(10, -10, 0)
 controls.target.y = -10
 onresize(camera, renderer, labelRenderer)
 window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer))
-//document.body.appendChild(renderer.domElement)
 document.body.appendChild(labelRenderer.domElement)
 labelRenderer.domElement.style.position = 'absolute'
 labelRenderer.domElement.style.top = '0'
@@ -117,15 +116,12 @@ scene.add(createLight(0, -5, 0))
       .map(createPipeMesh)
       .map((mesh, index) => {
         const ITEM_SIZE = 1 // measure depth index
-        const NORMALIZED = false
         mesh.updateWorldMatrix(true, false)
         //@ts-ignore
         const geometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry)
         geometry.applyMatrix(mesh.matrixWorld)
-        const t0 = performance.now()
         const mdIndices = new Float32Array(geometry.getAttribute('position').count * ITEM_SIZE)
-        mdIndices.forEach((v, i) => { mdIndices[i] = animationData.mdAccessors[index] })
-        geometry.setAttribute('md', new THREE.Float32BufferAttribute(mdIndices, ITEM_SIZE))
+        geometry.setAttribute('md', new THREE.Float32BufferAttribute(mdIndices.map(() => animationData.mdAccessors[index]), ITEM_SIZE))
         return geometry
       })
 

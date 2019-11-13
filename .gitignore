@@ -1,6 +1,7 @@
 # build output
 .cache
 dist/
+.ipynb_checkpoints
 
 # Logs
 logs
