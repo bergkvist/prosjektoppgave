@@ -27,6 +27,6 @@
     "typescript": "^3.6.4"
   },
   "browserslist": [
-    "last 2 Chrome versions"
+    "last 2 Chrome versions, ie 11, safari 11"
   ]
 }

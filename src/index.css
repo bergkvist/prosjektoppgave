@@ -1,23 +1,40 @@
+:root {
+    --progress-height: 50px;
+    --progress-width: calc(100vw - 100px);
+}
+
 html, body {
     margin: 0;
     padding: 0;
+    font-size: 0; /* A non-zero font size can cause unwanted spacing between elements */
     height: 100vh;
     overflow: hidden;
     position: fixed;
     background-color: black;
 }
 
+canvas {
+    height: calc(100 * var(--vh) - var(--progress-height));
+    width: 100vw;
+}
+
+div {
+    font-size: 16px;
+}
+
 /* The slider itself */
 .slider {
     -webkit-appearance: none;  /* Override default CSS styles */
     appearance: none;
-    width: 85%; /* Full-width */
-    height: 5vh; /* Specified height */
+    width: var(--progress-width); /* Full-width */
+    height: var(--progress-height); /* Specified height */
     outline: none; /* Remove outline */
     opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
     -webkit-transition: .1s; /* 0.2 seconds transition on hover */
     transition: opacity .2s;
     border-radius: 0;
+    background-size: 100% 100%;
+    line-height: var(--progress-height);
 }
 
 /* Mouse-over effects */
@@ -30,14 +47,14 @@ html, body {
     -webkit-appearance: none; /* Override default look */
     appearance: none;
     width: 2px; /* Set a specific slider handle width */
-    height: 5vh; /* Slider handle height */
+    height: var(--progress-height); /* Slider handle height */
     background: black; /* Green background */
     cursor: pointer; /* Cursor on hover */
 }
 
 .slider::-moz-range-thumb {
     width: 2px; /* Set a specific slider handle width */
-    height: 5vh; /* Slider handle height */
+    height: var(--progress-height); /* Slider handle height */
     background: black; /* Green background */
     cursor: pointer; /* Cursor on hover */
 }
@@ -51,10 +68,15 @@ input {
     float: left;
 }
 
+#footer {
+    width: 100vw;
+    height: var(--progress-height);
+}
+
 #timestamp {
-    left: 95vw;
-    height: 5vh;
-    width: 14.9vw;
+    left: var(--progress-width);
+    height: var(--progress-height);
+    width: calc(100vw - var(--progress-width));
     background-color: #111111;
     color: white;
     float: left;

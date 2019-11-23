@@ -3,7 +3,6 @@ import * as BAS from 'three-bas'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils'
-import Stats from 'stats-js'
 import * as R from 'ramda'
 import geometrydef from './geometrydef'
 import { loadPath, createLight, createPipeGeometry, createPipeMesh, loadPipePressure, loadTexture } from './utils'
@@ -12,8 +11,12 @@ import Timeline from './Timeline'
 //import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
 import { scaleLinear } from 'd3'
 
-const timeline = new Timeline(document.getElementById('timeline') as HTMLInputElement)
+const timeline = new Timeline(
+  document.getElementById('timeline') as HTMLInputElement,
+  document.getElementById('timestamp') as HTMLDivElement
+)
 timeline.setImage(require('./data/inferno.png'))
+const canvas = document.getElementById('3d-view')
 
 const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), loadTexture(require('./data/inferno.png'))]).then(([pressure, path, texture]) => {
   const normalizedRange = length => R.range(0, length).map(scaleLinear().domain([0, length-1]).range([0, 1]))
@@ -32,18 +35,7 @@ const getAnimationData = () => Promise.all([loadPipePressure(), loadPath(), load
       .range(normalizedRange(pressureDepths.length))
   )
 
-  const getTimeAccessor = ({ speedup = 1, timestamp }) => {
-    const time = (speedup * timestamp / 1000) % R.last(ts)
-    return {
-      time,
-      normalizedTime: scaleLinear()
-        .domain(ts)
-        .range(normalizedRange(ts.length))
-          (time)
-    }
-  }
-
-  return { mdAccessors, getTimeAccessor, texture, ts, path }
+  return { mdAccessors, texture, ts, path }
 })
 
 function createLabel(text, position) {
@@ -59,19 +51,12 @@ function createLabel(text, position) {
 }
 
 function onresize(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
-  renderer.setSize(window.innerWidth, window.innerHeight * 0.95)
-  labelRenderer.setSize(window.innerWidth, window.innerHeight * 0.95)
-  timeline.onresize()
-  camera.aspect = window.innerWidth / (window.innerHeight * 0.95)
+  const updateStyle = false
+  renderer.setSize(canvas.offsetWidth, canvas.offsetHeight, updateStyle)
+  labelRenderer.setSize(canvas.offsetWidth, canvas.offsetHeight)
+  camera.aspect = canvas.offsetWidth / canvas.offsetHeight
   camera.updateProjectionMatrix()
 }
-
-const allStats = [0, 1, 2].map(panel => {
-  const stats = new Stats()
-  stats.dom.style.cssText = `position:absolute;top:${50 * panel}px;left:${0}px;`
-  stats.showPanel(panel)
-  return stats
-}).filter(() => false)
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 10000)
 const scene = new THREE.Scene()
@@ -89,27 +74,22 @@ window.addEventListener("touchstart",  e => e.preventDefault(), { capture: true,
 window.addEventListener("touchmove",   e => e.preventDefault(), { capture: true, passive: false })
 window.addEventListener("touchend",    e => e.preventDefault(), { capture: true, passive: false })
 window.addEventListener("touchcancel", e => e.preventDefault(), { capture: true, passive: false })
+window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer), { passive: true })
 
 camera.position.set(10, -10, 25)
 controls.target.set(10, -10, 0)
 controls.target.y = -10
 onresize(camera, renderer, labelRenderer)
-window.addEventListener('resize', () => onresize(camera, renderer, labelRenderer))
 document.body.appendChild(labelRenderer.domElement)
 labelRenderer.domElement.style.position = 'absolute'
 labelRenderer.domElement.style.top = '0'
-for (const stats of allStats) {
-  document.body.appendChild(stats.dom)
-}
 
 scene.add(createLight(20, 20, 20))
 scene.add(createLight(-10, -10, -10))
 scene.add(createLight(0, -5, 0))
 
   ; (async () => {
-    performance.mark('main_start')
     const animationData = await getAnimationData()
-    performance.mark('resources_loaded')
     const pipeGeometry = createPipeGeometry(animationData.path, geometrydef)
 
     const geometries = pipeGeometry
@@ -130,7 +110,6 @@ scene.add(createLight(0, -5, 0))
     const material = 
     //new BAS.BasicAnimationMaterial({
     new BAS.StandardAnimationMaterial({
-    //new BAS.PhongAnimationMaterial({
       uniforms: {
         time: { value: 3.0 },
         x: { value: animationData.texture }
@@ -183,20 +162,15 @@ scene.add(createLight(0, -5, 0))
       pipeChanges.meshes.map(m => scene.add(m))
       pipeChanges.labels.map(l => scene.add(l))
     }
-
-    const timeDiv = document.getElementById('timestamp')
-
-    performance.mark('reached_render_loop')
-    performance.measure('time until first render', 'main_start', 'reached_render_loop')
-    performance.getEntriesByType('measure').map(x => console.log(x))
+    
+    let prevTimestamp = 0
     for (let i = 0; ; i++) {
       const timestamp = await new Promise<number>(requestAnimationFrame)
-      const { time, normalizedTime } =  animationData.getTimeAccessor({ timestamp, speedup: 3 })
-      timeline.input.value = String(time)
+      timeline.updateTime(timestamp - prevTimestamp)
+      prevTimestamp = timestamp
+      
       //@ts-ignore
-      mesh.material.uniforms.time.value = normalizedTime
-      timeDiv.innerText = `${Math.round(10*time)/10} s`
-      allStats.forEach(stats => stats.update())
+      mesh.material.uniforms.time.value = timeline.normalizedTime
       renderer.render(scene, camera)
       labelRenderer.render(scene, camera)
     }

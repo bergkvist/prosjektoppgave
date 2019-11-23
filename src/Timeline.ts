@@ -1,31 +1,36 @@
 export default class Timeline {
-    input: HTMLInputElement = null
+    inputElement: HTMLInputElement = null
+    timestampElement: HTMLDivElement = null
+    min: number = 0
+    max: number = 278200
+    time: number = 0
+    normalizedTime: number = 0
+    speedup: number = 3
 
-    constructor(input: HTMLInputElement) {
-      this.input = input
-      this.input.value = '0'
-      this.input.step = '0.1'
-      this.input.min = '0'
-      this.input.max = '278.2'
-  
-      this.onresize()
+    constructor(inputElement: HTMLInputElement, timestampElement: HTMLDivElement) {
+      this.inputElement = inputElement
+      this.timestampElement = timestampElement
+      this.time = this.min
+      this.inputElement.step = '100'
       this.setImage()
+      this.update()
     }
-  
-    onresize() {
-      const width = window.innerWidth * 0.85
-      const height = window.innerHeight * 0.05
-      this.input.width = width
-      this.input.height = height
-      this.input.style.backgroundSize = `${width}px ${height}px`
+
+    update() {
+      this.timestampElement.innerHTML = `${(this.time / 1000).toFixed(1)} s <br /><div style="color:gray; font-size:10px">(${this.speedup}x)</div>`
+      this.inputElement.value = String(this.time)
+      this.inputElement.min = String(this.min)
+      this.inputElement.max = String(this.max)
+      this.normalizedTime = (this.time - this.min) / (this.max - this.min)
     }
   
     setImage(url: string = require('./data/viridis.png')) {
-      this.input.style.backgroundImage = `url(${url})`
+      this.inputElement.style.backgroundImage = `url(${url})`
     }
 
-    getNormalizedTime() {
-        return (Number(this.input.value) - Number(this.input.min)) / (Number(this.input.max) - Number(this.input.min))
+    updateTime(dt: number) {
+      this.time = this.min + (this.time - this.min + this.speedup * dt) % (this.max - this.min)
+      this.update()
     }
   }
   

@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+    <script>
+        // This makes view-height units work on mobile: https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
+        document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`)
+        window.addEventListener('resize', () => document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`), false)
+    </script>
     <link type="text/css" rel="stylesheet" href="./index.css" />
     <script src="https://cdn.jsdelivr.net/npm/@mojs/core"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mojs/player"></script>
