@@ -6,6 +6,7 @@ export default class Timeline {
     time: number = 0
     normalizedTime: number = 0
     speedup: number = 3
+    paused: boolean = false
 
     constructor(inputElement: HTMLInputElement, timestampElement: HTMLDivElement) {
       this.inputElement = inputElement
@@ -14,6 +15,20 @@ export default class Timeline {
       this.inputElement.step = '100'
       this.setImage()
       this.update()
+
+      this.inputElement.oninput = () => {
+        this.time = Number(this.inputElement.value)
+        this.update()
+      }
+
+      this.timestampElement.onmousedown = this.timestampElement.ontouchstart = () => {
+        this.paused = !this.paused
+        if (this.paused) {
+          this.timestampElement.style.backgroundColor = 'maroon'
+        } else {
+          this.timestampElement.style.backgroundColor = '#111111'
+        }
+      }
     }
 
     update() {
@@ -29,6 +44,7 @@ export default class Timeline {
     }
 
     updateTime(dt: number) {
+      if (this.paused) return
       this.time = this.min + (this.time - this.min + this.speedup * dt) % (this.max - this.min)
       this.update()
     }

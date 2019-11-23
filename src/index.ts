@@ -11,6 +11,10 @@ import Timeline from './Timeline'
 //import { interpolateRdBu as colorScale } from 'd3-scale-chromatic'
 import { scaleLinear } from 'd3'
 
+/** This makes the timeline more touch friendly */
+import RangeTouch from 'rangetouch'
+new RangeTouch('#timeline', { addCSS: false, thumbWidth: 15, watch: false })
+
 const timeline = new Timeline(
   document.getElementById('timeline') as HTMLInputElement,
   document.getElementById('timestamp') as HTMLDivElement

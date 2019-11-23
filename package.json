@@ -19,6 +19,7 @@
     "parcel": "^1.12.4",
     "png.js": "^0.2.1",
     "ramda": "^0.26.1",
+    "rangetouch": "^2.0.0",
     "stats-js": "^1.0.1",
     "three": "^0.110.0",
     "three-bas": "^2.10.1"
