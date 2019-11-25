@@ -15,9 +15,9 @@ Use color for visualizing pressure:
     ☐ Animated platform moving up and down due to waves.
 
 @high Timeslider:
-    ☐ Play/pause button with playback speed
-    ☐ Display current time in seconds
-    ☐ Draggable slider (similar to a youtube-video slider).
+    ✔ Play/pause button with playback speed @done(19-11-25 13:32)
+    ✔ Display current time in seconds @done(19-11-25 13:32)
+    ✔ Draggable slider (similar to a youtube-video slider). @done(19-11-25 13:32)
     NOTE: When dragging, stop animation
 
 @low:

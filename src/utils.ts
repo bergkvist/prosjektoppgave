@@ -1,140 +1,57 @@
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import * as THREE from 'three'
-import { dsv, csv } from 'd3'
-import * as R from 'ramda'
-import { LENGTH_SCALING, RADIUS_SCALING } from './config'
-import { GeometryDef } from './geometrydef'
-import PNGReader from 'png.js'
 
-export interface Point { x: number, y: number, z: number }
-export interface BoundingBox { min: Point, max: Point }
-interface RawSegment { 'Md': string, 'Inc': string, 'Azi': string }
-export interface PathSegment { md: number, inc: number, azi: number, tvd: number, length: number }
-export type Path = Array<PathSegment>
-export type PipeSegment = { position: Point, rotation: Point, length: number, radius: number, md: number, tvd: number, pipeType: string }
-export type PipeGeometry = Array<PipeSegment>
-
-export async function loadTexture(image = require('./data/inferno.png')) {
-  const png = await new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('GET', image, true)
-    xhr.responseType = 'arraybuffer'
-    xhr.onload = function(e) {
-      if (this.status === 200) {
-        const reader = new PNGReader(this.response)
-        reader.parse((err, png) => {
-          if (err) reject(err)
-          resolve(png)
-        })
-      }
-    }
-    xhr.send()
-  })
-
-  //@ts-ignore
-  const texture: THREE.DataTexture = new THREE.DataTexture(png.pixels, png.width, png.height, THREE.RGBAFormat)
-  return texture
+export function onresize(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, labelRenderer: CSS2DRenderer) {
+  const updateStyle = false  // We are manually handling CSS, and don't want renderer.setSize() to make our page unresponsive.
+  renderer.setSize(renderer.domElement.offsetWidth, renderer.domElement.offsetHeight, updateStyle)
+  labelRenderer.setSize(renderer.domElement.offsetWidth, renderer.domElement.offsetHeight)
+  camera.aspect = renderer.domElement.offsetWidth / renderer.domElement.offsetHeight
+  camera.updateProjectionMatrix()
 }
 
-export function loadPipePressure() {
-  return csv(require('./data/pipepressure.csv'))
-    .then(x => { console.log('loaded pipe pressure'); return x })
-}
-
-export async function loadPath(): Promise<Path> {
-  const path = await dsv(';', require('./data/well_path.csv')) as Array<RawSegment>
-  return R.tail(path.map(segment => ({
-    md: Number(segment['Md']),
-    tvd: Number(segment['Tvd']),
-    inc: Number(segment['Inc']) * Math.PI / 180,
-    azi: Number(segment['Azi']) * Math.PI / 180,
-  })).map((segment, i, arr) => ((i === 0) ? null : {
-    length: arr[i].md - arr[i-1].md,
-    ...segment
-  })))
-}
-
-export function getBoundingBox (points: Array<Point>): BoundingBox {
-  const bbox: BoundingBox = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }
-  for (const p of points) {
-    for (const c of ['x', 'y', 'z']) {
-      if (p[c] > bbox.max[c]) bbox.max[c] = p[c]
-      else if (p[c] < bbox.min[c]) bbox.min[c] = p[c]
-    }
-  }
-  return bbox
-}
-
-export function createTerrainMeshes (bbox: BoundingBox, color: string): Array<THREE.Mesh> {
-  const dx = (bbox.max.x - bbox.min.x)
-  const dy = (bbox.max.y - bbox.min.y)
-  const dz = (bbox.max.z - bbox.min.z)
-  const x =  (bbox.max.x + bbox.min.x) / 2
-  const y =  (bbox.max.y + bbox.min.y) / 2
-  const z =  (bbox.max.z + bbox.min.z) / 2
-  
-  const geometry = new THREE.BoxGeometry(dx, dy, dz)
-  return [THREE.FrontSide, THREE.BackSide].map(side => {
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(color),
-      opacity: 0.2,
-      transparent: true,
-      side
-    })
-    const mesh = new THREE.Mesh(geometry, material)
-    mesh.position.set(x, y, z)
-    return mesh
-  })
-}
-
-export function createLight (x: number, y: number, z: number): THREE.DirectionalLight {
+function createLight (x: number, y: number, z: number): THREE.DirectionalLight {
   const light = new THREE.DirectionalLight(0xFFFFFF, 1)
   light.position.set(x, y, z)
   return light
 }
 
-export function createPipeMesh (pipeSegment: PipeSegment): THREE.Mesh {
-  const { position, rotation, length, radius } = pipeSegment
-  const RADIUS_SEGMENTS = 20
-  const HEIGHT_SEGMENTS = 5
-  const geometry = new THREE.CylinderGeometry(radius, radius, length, RADIUS_SEGMENTS, HEIGHT_SEGMENTS)
-  const mesh = new THREE.Mesh(geometry, new THREE.Material())
-  mesh.position.set(position.x, position.y, position.z)
-  mesh.rotation.set(rotation.x, rotation.y, rotation.z)
-  return mesh
+export function createCamera () {
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 10000)
+  return camera
 }
 
-export function createPipeGeometry(path: Path, geometrydef: GeometryDef): PipeGeometry {
-  const points = pathToPoints(path)
-  const data = path.map(pathSegment => {
-    for (const geometrySegment of geometrydef) {
-      if (pathSegment.md <= geometrySegment.md)
-        return { radius: geometrySegment.diameter / 2, name: geometrySegment.name }
-    }
-    return { name: '', radius: 0 }
-  })
-  return points.map((position, i) => ({
-    position,
-    rotation: { x: 0, y: path[i].azi, z: path[i].inc },
-    radius: data[i].radius * RADIUS_SCALING,
-    length: path[i].length * LENGTH_SCALING,
-    md: path[i].md,
-    tvd: path[i].tvd,
-    pipeType: data[i].name,
-  }))
+export function createRenderer (canvas: HTMLCanvasElement) {
+  const antialias = true
+  const logarithmicDepthBuffer = true
+  const powerPreference = 'high-performance'
+  const renderer = new THREE.WebGLRenderer({ antialias, logarithmicDepthBuffer, powerPreference, canvas })
+  
+  // This should make sure colors are more accurate
+  renderer.gammaFactor = 2.2
+  renderer.gammaOutput = true
+  renderer.physicallyCorrectLights = true
+  return renderer
 }
 
-export function pathToPoints(pipes: Path): Array<Point> {
-  const vectors = pipes.map(pipe => new THREE.Vector3(0, -pipe.length / 2 * LENGTH_SCALING, 0)
-    .applyEuler(new THREE.Euler(0, pipe.azi, pipe.inc)))
+export function createScene () {
+  const scene = new THREE.Scene()
+  scene.add(createLight(20, 20, 20))
+  scene.add(createLight(-10, -10, -10))
+  scene.add(createLight(0, -5, 0))
+  return scene
+}
 
-  return vectors.reduce((positions, _, i) => {
-    if (i === 0) {
-      positions[i] = vectors[i]
-      return positions
-    }
-  
-    positions[i] = positions[i].add(positions[i-1]).add(vectors[i-1]).add(vectors[i])
-    return positions
-  
-  }, vectors.map(() => new THREE.Vector3(0, 0, 0)))
+export function createControls (camera: THREE.Camera, element: HTMLElement) {
+  const controls = new OrbitControls(camera, element)
+  return controls
+}
+
+export async function * animationIterator () {
+  let t0 = 0
+  while(true) {
+    const t = await new Promise<number>(resolve => requestAnimationFrame(timestamp => resolve(timestamp)))
+    yield t - t0
+    t0 = t
+  }
 }

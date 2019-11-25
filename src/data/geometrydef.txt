@@ -7,7 +7,8 @@
 0.00	#Liner length
 4597	# Pipe length in meters (total length is pipe length+bha length+heavy weight drill pipe length)
 100	# Heavy weight drill pipe length in meters
-42	# BHA length in meters#5192	# Total well length in meters
+42	# BHA length in meters 
+5192	# Total well length in meters
 4.276	# Inner pipe diameter in inches
 5.0	# Outer pipe diameter in inches
 3.0	# Inner heavy weight drill pipe diameter in inches

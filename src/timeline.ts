@@ -1,19 +1,23 @@
+import RangeTouch from 'rangetouch'
+
+export const seconds = (s: number) => 1000 * s
+
 export default class Timeline {
     inputElement: HTMLInputElement = null
     timestampElement: HTMLDivElement = null
     min: number = 0
-    max: number = 278200
+    max: number = seconds(100)
+    step: number = seconds(0.1)
     time: number = 0
     normalizedTime: number = 0
     speedup: number = 3
     paused: boolean = false
 
     constructor(inputElement: HTMLInputElement, timestampElement: HTMLDivElement) {
+      new RangeTouch(inputElement, { addCSS: false, thumbWidth: 15, watch: false })
       this.inputElement = inputElement
       this.timestampElement = timestampElement
-      this.time = this.min
-      this.inputElement.step = '100'
-      this.setImage()
+      //this.set()
       this.update()
 
       this.inputElement.oninput = () => {
@@ -36,14 +40,20 @@ export default class Timeline {
       this.inputElement.value = String(this.time)
       this.inputElement.min = String(this.min)
       this.inputElement.max = String(this.max)
+      this.inputElement.step = String(this.step)
       this.normalizedTime = (this.time - this.min) / (this.max - this.min)
     }
-  
-    setImage(url: string = require('./data/viridis.png')) {
-      this.inputElement.style.backgroundImage = `url(${url})`
+    
+    set({ imageUrl = require('./data/viridis.png'), min = 0, max = seconds(100), step = seconds(0.1) } = {}) {
+      this.inputElement.style.backgroundImage = `url(${imageUrl})`
+      this.min = min
+      this.max = max
+      this.step = step
+      this.time = min
+      this.update()
     }
 
-    updateTime(dt: number) {
+    addTime(dt: number) {
       if (this.paused) return
       this.time = this.min + (this.time - this.min + this.speedup * dt) % (this.max - this.min)
       this.update()

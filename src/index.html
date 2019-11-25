@@ -9,10 +9,13 @@
         // This makes view-height units work on mobile: https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
         document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`)
         window.addEventListener('resize', () => document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`), false)
+        // This makes the app more mobile friendly (since the default touch gestures are prevented)
+        window.addEventListener("touchstart",  e => e.preventDefault(), { capture: true, passive: false })
+        window.addEventListener("touchmove",   e => e.preventDefault(), { capture: true, passive: false })
+        window.addEventListener("touchend",    e => e.preventDefault(), { capture: true, passive: false })
+        window.addEventListener("touchcancel", e => e.preventDefault(), { capture: true, passive: false })
     </script>
     <link type="text/css" rel="stylesheet" href="./index.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@mojs/core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mojs/player"></script>
 </head>
 <body>
     <canvas id="3d-view"></canvas>
