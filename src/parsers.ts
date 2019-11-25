@@ -12,9 +12,7 @@ export interface GeometrySegment { name: string, radius: number, md: number }
 export type GeometryDef = Array<GeometrySegment>
 
 async function parsePipePressure() {
-  const response = await Axios.get(require('./data/pipepressure.csv'))
-  const mds = tail(head(response.data.split('\n')).split(',')).map(Number)
-  return { mds }
+  return { mds: require('./data/mds.json') }
 }
 
 async function parseWellPath(): Promise<Path> {

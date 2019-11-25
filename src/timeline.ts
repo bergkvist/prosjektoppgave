@@ -17,7 +17,6 @@ export default class Timeline {
       new RangeTouch(inputElement, { addCSS: false, thumbWidth: 15, watch: false })
       this.inputElement = inputElement
       this.timestampElement = timestampElement
-      //this.set()
       this.update()
 
       this.inputElement.oninput = () => {
