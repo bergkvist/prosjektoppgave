@@ -6,7 +6,9 @@ export function createLabel (text, position) {
   casingShoeDiv.textContent = text
   casingShoeDiv.style.marginTop = '-1em'
   casingShoeDiv.style.color = 'white'
-  casingShoeDiv.style.backgroundColor = 'black'
+  casingShoeDiv.style.backgroundColor = 'rgba(0,0,0,0.6)'
+  casingShoeDiv.style.fontFamily = 'sans serif'
+  casingShoeDiv.style.fontSize = '16px'
   const casingShoeLabel = new CSS2DObject(casingShoeDiv)
   casingShoeLabel.position.set(position.x, position.y, position.z)
   return casingShoeLabel

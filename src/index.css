@@ -11,6 +11,7 @@ html, body {
     overflow: hidden;
     position: fixed;
     background-color: black;
+    font-family: sans-serif;
 }
 
 canvas {

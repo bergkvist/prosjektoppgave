@@ -1,9 +1,12 @@
 import * as BAS from 'three-bas'
 
-export function createMaterial (type: 'standard' | 'basic' = 'standard', { time = { value: 0 }, dataTexture = { value: null } } = {}) {
-  const Material = (type === 'basic')
-    ? BAS.BasicAnimationMaterial
-    : BAS.StandardAnimationMaterial
+type MaterialType = 'basic' | 'standard'
+
+export function createMaterial (materialType: MaterialType, { time = { value: 0 }, dataTexture = { value: null } } = {}) {
+  const Material = {
+    'basic': BAS.BasicAnimationMaterial,
+    'standard': BAS.StandardAnimationMaterial
+  }[materialType]
 
   return new Material({
     uniforms: {

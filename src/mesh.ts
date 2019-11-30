@@ -107,6 +107,6 @@ export async function createMeshes () {
     }, { meshes: [], labels: [] })
 
   const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries)
-  const pipe = new THREE.Mesh(mergedGeometry, createMaterial('standard'))
+  const pipe = new THREE.Mesh(mergedGeometry, createMaterial('basic'))
   return { pipe, shoes }
 }
