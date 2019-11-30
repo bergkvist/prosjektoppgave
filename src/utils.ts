@@ -26,11 +26,6 @@ export function createRenderer (canvas: HTMLCanvasElement) {
   const logarithmicDepthBuffer = true
   const powerPreference = 'high-performance'
   const renderer = new THREE.WebGLRenderer({ antialias, logarithmicDepthBuffer, powerPreference, canvas })
-  
-  // This should make sure colors are more accurate
-  renderer.gammaFactor = 2.2
-  renderer.gammaOutput = true
-  renderer.physicallyCorrectLights = true
   return renderer
 }
 

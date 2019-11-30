@@ -24,7 +24,7 @@ export function createMaterial (materialType: MaterialType, { time = { value: 0 
     vertexColor: [
       'vColor = (md >= 0.0 && md <= 1.0)',
       '  ? texture2D(dataTexture, vec2(time, md)).xyz',
-      '  : vec3(0.01, 0.01, 0.01);' // Missing simulation data is gray
+      '  : vec3(0.3, 0.3, 0.3);' // Missing simulation data is gray
     ],
     fragmentDiffuse: [
       'diffuseColor.rgb *= vColor;'
