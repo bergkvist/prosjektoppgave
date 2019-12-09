@@ -1,0 +1,28 @@
+Todo list
+
+Labels in visualization:
+    ✘ https://codepen.io/dxinteractive/pen/reNpOR @cancelled(19-10-23 21:56)
+    ✘ https://stemkoski.github.io/Three.js/Sprite-Text-Labels.html @cancelled(19-10-23 21:56)
+    ✔ https://threejs.org/examples/css2d_label.html @done(19-10-23 21:56)
+
+
+Use color for visualizing pressure:
+    ✔ Have any kind of control over color/position @done(19-10-23 21:51)
+    ☐ Use something else than min and max to control color scale. (consider something with pho g h)
+
+@high:
+    ☐ Actually use geometrydef.txt
+    ☐ Animated platform moving up and down due to waves.
+
+@high Timeslider:
+    ✔ Play/pause button with playback speed @done(19-11-25 13:32)
+    ✔ Display current time in seconds @done(19-11-25 13:32)
+    ✔ Draggable slider (similar to a youtube-video slider). @done(19-11-25 13:32)
+    NOTE: When dragging, stop animation
+
+@low:
+    ☐ Make sea bottom only visible from below. Make ground top only visible from above.
+    ☐ Consider lowering sea level slighly to prevent flickerin
+
+
+    discrete colors!

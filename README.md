@@ -1,6 +1,6 @@
-# prosjektoppgave
-Prosjektoppgave for Heavelock. Visualisering av trykkendringer.
+# How to run project locally
+```sh
+$ docker-compose up -d --build
+```
 
-Assume `~ = dropbox://"HeaveSim simulations"/Well_1/Connection_5974mMD`
-
-~/geometrydef.txt
+## Deployment with Kubernetes
