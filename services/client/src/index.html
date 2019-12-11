@@ -12,11 +12,9 @@
   $css
   <script>
     // This makes view-height units work on mobile: https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
-    const heightUnit = 0.01 * window.innerHeight
-    document.documentElement.style.setProperty('--vh', heightUnit + 'px')
+    document.documentElement.style.setProperty('--vh', (0.01 * window.innerHeight) + 'px')
     window.addEventListener('resize', function() {
-      const heightUnit = 0.01 * window.innerHeight
-      document.documentElement.style.setProperty('--vh', heightUnit + 'px')
+      document.documentElement.style.setProperty('--vh', (0.01 * window.innerHeight) + 'px')
     }, false)
 
     // This makes the app more mobile friendly (since the default touch gestures are prevented)
@@ -27,7 +25,7 @@
   </script>
 </head>
 <body>
-  <canvas id="3d-view"></canvas>
+  <canvas id="canvas-3d"></canvas>
   <div class="footer">
     <input id="timeline" class="slider" type="range"></input>
     <div id="timestamp">0.0 s</div>

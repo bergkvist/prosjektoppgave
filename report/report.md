@@ -37,7 +37,7 @@ TODO
 - `mainpumprate.txt`
 - `drillstringcontrol.txt`
 
-For this task, the files of interest are: `well_path.csv`, `geometrydef.txt`, `pipepressure.csv`
+For this task, the files of interest are: `well_path.csv`, `geometrydef.txt`, `pipepressure.csv`, `fluiddef.txt`
 
 ## Task description
  The following tasks should be performed by the student:
@@ -62,16 +62,50 @@ For this task, the files of interest are: `well_path.csv`, `geometrydef.txt`, `p
 
 
 # Concretization of problem
+PROBLEM
+CONCRETIZATION OF GOAL AND METHOD
+START OF PROBLEM
+
+- Looking at the file output directly conveys little/no knowledge
+- 2D-visualizations are generally good, but can be abstract and hard to relate to.
+- A 3D-model/visualization is very intuitive and easy to relate to and understand - even for non-technical people.
+- In the oil industry, employees often have to use browsers like Internet Explorer. (Alternatively: Mobile browsers)
+- Installing a program takes more work, and is less protable than using a web application.
+
+Before we start, it might be useful to define some terms and concepts:
+
+ - If the pressure drops too low or rises too high, this can cause problems
+
+Looking directly at the output from HeaveSIM, it is hard to get an idea of what the oil string geometry looks like, and exactly how the pressure is fluctuating (and where there are potential problems). If the pressure fluctuations along with the three dimensional path of the string could be seen at the same time - it could prove very useful for quickly localizing problems on the oil string. It could also serve as a tool for conveying information to people that have less technical knowledge - due to how relatable and intuitive a 3D-model is.
+
+
+
 We want to create an animated and interactive 3D-visualization in a web client. In the recent years, a technology called "WebGL", based on "OpenGL" has been implemented and standardized for Web Browsers. The main purpose of WebGL is to allow web browsers to utilize the graphic processing units of computers and mobile phones for 2d and 3d-rendering. This is perfect for this use case - since the goal is rendering and animating something in 3D.
 
 Based on the layout of the `well_path.csv`-file, one could create a 3d-cylinder with a specific color for each pipe segment in the well_path definition. Since the well_path defintion does not give us the spatial centers of these cylinders directly, we would need to compute this ourselves (Based on measure depth and angles).
 
 WebGL only concerns itself with points and triangles. Creating a cylinder from triangles would require quite a bit of code. It would be useful if there was some kind of abstraction that would allow for creating more complex geometric objects (such as a cylinder), and controlling the colors of these objects. We are in luck, as a library known as THREE.js will make our life quite a bit easier.
 
+When it comes to using libraries, and writing modular code that works for multiple browsers, it is common to use a bundler for this purpose. A bundler will combine modules with dependencies into static assets. It will also be able to minify your code to reduce bundle size (remove whitespace, and rename variables/identifiers to be as short as possible) and perform tree shaking (remove code that will never be executed from the bundle) along with other optimizations and useful features.
+
+To start with, the well_path.csv-file is loaded using the library d3.js (Data-Driven-Documents). d3.js is commonly used for interactive 2D-visualzations, but it has a csv-parser built in, which is the only reason we are using d3 (for now). Since we don't have the actual positions pf
+
 ## Why a Web Application?
 The main advantage of creating a web application is that it allows the application to run on multiple platforms, including desktop (Windows, MacOS, Linux) and mobile (iOS, Android) and many others. Creating native applications for all of these platforms would take a lot more work. Note that browsers are not all the same - and it does take some work to make an application usable across multiple browsers, with both mouse and touch gestures - and a wide variety of display sizes.
 
 # Implementation
+
+
+### TypeScript vs JavaScript
+Most of this project will be written in TypeScript. TypeScript is a superset of JavaScript that compiles to regular JavaScript and runs type checks against the code. It also works very well together with Visual Studio Code (as both are created by Microsoft), which massively improves autocomplete and code hints.
+
+
+### Parcel vs FuseBox (vs WebPack)
+FuseBox has been built with TypeScript support being one of the main goals. Parcel, in contrast uses something called Babel (explain) to transpile code.
+- FuseBox has some configuration, but a lot less than Webpack. Parcel is known for being "zero-config".
+- Parcel had trouble transpiling node_modules (which are the project dependencies). This is something FuseBox does by default.
+- FuseBox v4 has just been released, but it has very little documentation
+
 ## Algorithms
 ### spatial centers of cylinders from `well_path.csv`
 ### assigning radiuses to the each of the cylinders with `geometrydef.txt`
@@ -104,7 +138,40 @@ TODO: Add references for each of these statements
 
 
 # User guide
+## Desktop/Laptop (Chrome, FireFox, Edge, Internet Explorer)
+You have access to more features on desktop (through use of keyboard)
+
+|control|description|
+|-------|-----------|
+| + *(keypress)* | Increase playback speed by 1x |
+| - *(keypress)* | Decrease playback speed by 1x |
+| Q *(keypress)* | Set pipe material to "Basic Material" (no light-model: default) |
+| W *(keypress)* | Set pipe material to "Standard Material" (realistic lightning) |
+| Scroll up | Zoom in |
+| Scroll down | Zoom out |
+| Hold left mouse down/drag | Rotate scene |
+| Hold right mouse down/drag | Translate scene along x or z-axis |
+| Click or drag timeline | Change time |
+| Click timestamp | Play/pause time (button is red when paused)
+
+## Mobile controls
+|control|description|
+|-------|-----------|
+| Drag with one finger | Rotate scene |
+| Drag with two fingers | Translate scene along x or z-axis |
+| Pinch with two fingers | Zoom in/out |
+| Touch/drag on timeline | Change time |
+| Touch timestamp | Play/pause time (button is red when paused)
+
+
 # Further work
+ - Improve the colors
+ - Center 3D-model in view
+ - Add menu/UI to select a specific Well and Connection
+ - Add password authentication
+ - Interactive 3D: Click on pipe segments to get more information
+ - Add some numeric information to the side (color scale for pressure)
+ - Discrete colors (warnings and alarms)
 
 # References
 

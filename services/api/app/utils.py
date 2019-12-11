@@ -5,12 +5,14 @@ from math import pi
 import numpy as np
 import pandas as pd
 
+LENGTH_SCALING = 1 / 100
+
 def get_pipe_stuff(path: str):
     well_path = parse_well_path(path)
     geometrydef = parse_geometrydef(path)
     pipepressure = parse_pipepressure(path)
 
-    well_path['length'] = well_path.md.diff()
+    well_path['length'] = well_path.md.diff() * LENGTH_SCALING
     well_path = well_path.iloc[1:]
     well_path['rotx'] = 0.0 # Included for completeness
     well_path.roty = (pi / 180) * well_path.roty
@@ -30,6 +32,9 @@ def get_pipe_stuff(path: str):
     well_path['vy'] = vy
     well_path['vz'] = vz
 
+    # Translate the figure into view
+    well_path.posx -= well_path.posx.max() / 5
+    well_path.posy -= well_path.posy.min() / 2
 
     casing_shoes = []
     well_path['radius'] = 0.0
@@ -53,6 +58,7 @@ def get_pipe_stuff(path: str):
     well_path = well_path[well_path.radius > 0.0]
 
     # Interpolation to find out what the measure depth pixels should be...
+    # Basically, this is connecting texture location to pipe segments
     well_path['imageHeightPortion'] = interpolate.interp1d(
         np.array(pipepressure.columns), 
         np.linspace(0, 1, len(pipepressure.columns)), 
@@ -60,7 +66,6 @@ def get_pipe_stuff(path: str):
     )(well_path.md)
 
     return {
-        # TODO: Fix
         'time': { 
             'min': list(pipepressure.index)[0], 
             'max': list(pipepressure.index)[-1], 

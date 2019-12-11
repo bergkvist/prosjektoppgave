@@ -1,5 +1,5 @@
 import './index.scss'
-import { loadImageData, loadSimulation } from './loaders'
+import { loadImageData, loadSimulation, ensureAuthentication } from './loaders'
 import { createPipeMesh, createShoeMesh } from './objects/mesh'
 import { changeMaterial } from './objects/material'
 import Timeline, { seconds } from './Timeline'
@@ -10,25 +10,32 @@ const timeline = new Timeline(
   document.getElementById('timestamp') as HTMLDivElement
 )
 
-const canvas3D = new Canvas3D(document.getElementById('3d-view') as HTMLCanvasElement)
-canvas3D.setCamera({ x: 0, y: -10, z: 0, d: 30 })
+const canvas3D = new Canvas3D(document.getElementById('canvas-3d') as HTMLCanvasElement)
+canvas3D.setCamera({ x: 0, y: 0, z: 0, d: 30 })
 canvas3D.addLight(-100, -100, -100)
 canvas3D.addLight(100, 100, 100)
 canvas3D.addLight(100, -100, 100)
-main()
 
+// Start the main function after ensuring authentication
+ensureAuthentication().then(main).catch(err => alert(err.message))
 
-async function main() {
-  const well = 'Well_2'
-  const connection = 'Connection_4739mMD'
-  const imageUrl = `api/simulations/${well}/${connection}/pipepressure.png?vmax=5&vmin=-5&cmap=inferno&dt=${Date.now()}`
+async function main(data) {  
+  const [, well, connection] = window.location.pathname.split('/')
+  if (!well) return window.location.assign(`/Well_2/Connection_4739mMD`)
+  if (!(data[well] instanceof Array)) throw Error(`"${well}" is not a valid well. Please select one of: \n${Object.keys(data).join('\n')}`)
+  if (!connection) return window.location.assign(`/${well}/${data[well][data[well].length - 1]}`)
+  if (!(isInside(connection, data[well]))) throw Error(`"${connection}" is not valid for this well. Please select one of: \n${data[well].join('\n')}`)
+
+  const imageUrl = (well === 'Well_1')
+    ? `/api/simulations/${well}/${connection}/pipepressure.png?vmax=15&vmin=-15&cmap=inferno`
+    : `/api/simulations/${well}/${connection}/pipepressure.png?vmax=5&vmin=-5&cmap=inferno`
   
   const [ simulationData, imageData ] = await Promise.all([
     loadSimulation(well, connection),
-    loadImageData(imageUrl)
+    loadImageData(imageUrl, { maxSize: 4096 /* max DataTexture size */ })
   ])
   timeline.set({
-    imageUrl,
+    imageUrl: imageData.objectURL,
     min: seconds(simulationData.time.min),
     max: seconds(simulationData.time.max),
     step: seconds(simulationData.time.step)
@@ -73,5 +80,10 @@ window.addEventListener('keydown', e => {
   }
 })
 
+
 // Key Codes
 // Q(81), W(87), A(65), S(83)
+function isInside(item: string, arr: Array<string>) {
+  for (const el of arr) if (el === item) return true
+  return false
+}
