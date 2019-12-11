@@ -38,10 +38,14 @@ export function loadImageData (imageUrl: string, { maxSize = 4096 } = {}): Promi
       const context = canvas.getContext('2d')
       context.drawImage(img, 0, 0, width, height)
       const imageData = context.getImageData(0, 0, width, height)
-      canvas.toBlob(blob => {
-        const objectURL = (window.URL || window.webkitURL).createObjectURL(blob)
-        resolve({ objectURL, width, height, data: imageData.data })
-      })
+      try {
+        canvas.toBlob(blob => {
+          const objectURL = (window.URL || window.webkitURL).createObjectURL(blob)
+          resolve({ objectURL, width, height, data: imageData.data })
+        })
+      } catch { // IE/Edge doesn't support canvas.toBlob()
+        resolve({ objectURL: imageUrl, width, height, data: imageData.data })
+      }
     })
     img.addEventListener('error', reject)
     img.src = imageUrl

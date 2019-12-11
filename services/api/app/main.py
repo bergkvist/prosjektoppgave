@@ -11,10 +11,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from dotenv import load_dotenv
+
 from app.parsers import *
 from app.utils import *
 
-API_KEY = "fs0c13ty"
+load_dotenv(verbose=True)
+
+API_KEY = os.environ['API_KEY']
 API_KEY_NAME = "api_key"
 COOKIE_DOMAIN = "localhost"
 
