@@ -1,4 +1,2 @@
-**
-!package.json
-!yarn.lock
-!.browserslistrc.packages
+node_modules
+dist

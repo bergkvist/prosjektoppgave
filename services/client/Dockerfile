@@ -1,9 +1,15 @@
-FROM node:10
-WORKDIR /app
-COPY package.json .
-COPY yarn.lock .
-COPY .browserslistrc.packages .
+### STAGE 1: Build ###
+FROM node:10-alpine as build
+WORKDIR /home/app/
+COPY package.json ./
+COPY yarn.lock ./
 RUN yarn
+COPY . .
+RUN yarn build
+
+### STAGE 2: Production Environment ###
+FROM nginx:1.13.12-alpine
+COPY --from=build /home/app/dist /var/www
+COPY nginx.conf /etc/nginx/nginx.conf
 EXPOSE 80
-EXPOSE 9999
-CMD yarn start
+CMD ["nginx", "-g", "daemon off;"]
