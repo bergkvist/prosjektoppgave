@@ -1,11 +1,11 @@
-import { PipeSegment, CasingShoe } from '../loaders'
+import { PathSegment, CasingShoe } from '../loaders'
 import { createBufferAnimationMaterial } from './material'
-import { createPipeBufferGeometry } from './geometry'
+import { createWellPathBufferGeometry } from './geometry'
 import * as THREE from 'three'
 
-export function createPipeMesh(pipeSegments: Array<PipeSegment>, imageData: ImageData) {
-  const geometry = createPipeBufferGeometry(pipeSegments)
-  const material = createBufferAnimationMaterial('basic', imageData)
+export function createWellPathMesh(pathSegments: Array<PathSegment>, imageData: ImageData) {
+  const geometry = createWellPathBufferGeometry(pathSegments)
+  const material = createBufferAnimationMaterial('standard', imageData)
   const mesh = new THREE.Mesh(geometry, material)
   return mesh
 }

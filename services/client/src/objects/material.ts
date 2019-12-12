@@ -58,11 +58,11 @@ export function createBufferAnimationMaterial (materialType: MaterialType, image
   return _createBufferAnimationMaterial(materialType, config)
 }
 
-export function changeMaterial (pipe: Mesh, materialType: MaterialType) {
-  if (!pipe.material['uniforms']) throw Error('Invalid mesh (does not have uniforms)')
+export function changeMaterial (wellPath: Mesh, materialType: MaterialType) {
+  if (!wellPath.material['uniforms']) throw Error('Invalid mesh (does not have uniforms)')
   const config = createMaterialConfig(
-    pipe.material['uniforms'].dataTexture.value,
-    pipe.material['uniforms'].time.value
+    wellPath.material['uniforms'].dataTexture.value,
+    wellPath.material['uniforms'].time.value
   )
-  pipe.material = _createBufferAnimationMaterial(materialType, config)
+  wellPath.material = _createBufferAnimationMaterial(materialType, config)
 }

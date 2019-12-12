@@ -4,8 +4,8 @@ export type Position = { posx: number, posy: number, posz: number }
 export type Rotation = { rotx: number, roty: number, rotz: number }
 export type TimeSequence = { min: number, max: number, step: number }
 export type CasingShoe = Position & Rotation & { label: string, radius: number }
-export type PipeSegment = Position & Rotation & { radius: number, length: number, imageHeightPortion: number }
-export type SimulationData = { pipeSegments: Array<PipeSegment>, casingShoes: Array<CasingShoe>, time: TimeSequence }
+export type PathSegment = Position & Rotation & { radius: number, length: number, mdTextureMap: number }
+export type SimulationData = { pathSegments: Array<PathSegment>, casingShoes: Array<CasingShoe>, time: TimeSequence }
 
 export async function ensureAuthentication() {
   while (true) {

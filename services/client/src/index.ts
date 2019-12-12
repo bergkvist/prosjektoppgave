@@ -1,6 +1,6 @@
 import './index.scss'
 import { loadImageData, loadSimulation, ensureAuthentication } from './loaders'
-import { createPipeMesh, createShoeMesh } from './objects/mesh'
+import { createWellPathMesh, createShoeMesh } from './objects/mesh'
 import { changeMaterial } from './objects/material'
 import Timeline, { seconds } from './Timeline'
 import Canvas3D from './Canvas3D'
@@ -41,8 +41,8 @@ async function main(data) {
     step: seconds(simulationData.time.step)
   })
   
-  const pipe = createPipeMesh(simulationData.pipeSegments, imageData)
-  canvas3D.scene.add(pipe)
+  const wellPath = createWellPathMesh(simulationData.pathSegments, imageData)
+  canvas3D.scene.add(wellPath)
   
   simulationData.casingShoes
     .map(({ label, posx, posy, posz }) => canvas3D.addLabel(label, posx, posy, posz))
@@ -52,15 +52,15 @@ async function main(data) {
 
 
   window.addEventListener('keydown', e => {
-    if (e.keyCode === 81) changeMaterial(pipe, 'basic')
-    if (e.keyCode === 87) changeMaterial(pipe, 'standard')
+    if (e.keyCode === 81) changeMaterial(wellPath, 'basic')
+    if (e.keyCode === 87) changeMaterial(wellPath, 'standard')
   })
   
   
   requestAnimationFrame(tNow => render(0, tNow))
   function render(tPrev: number, tNow: number) {
     timeline.addTime(tNow - tPrev)
-    pipe.material['uniforms'].time.value = timeline.normalizedTime
+    wellPath.material['uniforms'].time.value = timeline.normalizedTime
     canvas3D.render()
     requestAnimationFrame(tNext => render(tNow, tNext))
   }

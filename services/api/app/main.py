@@ -6,25 +6,18 @@ from fastapi import FastAPI
 import tempfile
 import os
 
-from scipy import interpolate
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-
+import numpy as np
 from dotenv import load_dotenv
-
-from app.parsers import *
-from app.utils import *
+from app.SimulationLoader import SimulationLoader
+import app.path_segment as path_segment
 
 load_dotenv(verbose=True)
 
 API_KEY = os.environ['API_KEY']
-API_KEY_NAME = "api_key"
-COOKIE_DOMAIN = "localhost"
-
-api_key_query = APIKeyQuery(name=API_KEY_NAME, auto_error=False)
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
-api_key_cookie = APIKeyCookie(name=API_KEY_NAME, auto_error=False)
+api_key_query = APIKeyQuery(name='api_key', auto_error=False)
+api_key_header = APIKeyHeader(name='api_key', auto_error=False)
+api_key_cookie = APIKeyCookie(name='api_key', auto_error=False)
 app = FastAPI()
 
 simulation_dir = './data/HeaveSim simulations'
@@ -71,27 +64,39 @@ def get_connections(well: str, api_key: APIKey = Depends(get_api_key)):
 
 @app.get('/api/simulations/{well}/{connection}')
 def get_simulation(well: str, connection: str, api_key: APIKey = Depends(get_api_key)):
-    pipestuff = get_pipe_stuff(f'{simulation_dir}/{well}/{connection}')
-    pipestuff['pipeSegments'] = pipestuff['pipeSegments']\
-        .drop(['vx', 'vy', 'vz', 'md', 'tvd'], axis='columns')\
-        .to_dict(orient='records')
-    return pipestuff
+    sl = SimulationLoader(simulation_dir, well, connection)
+    simulation_data = sl.pipepressure()
+    geometry_types = path_segment.geometry_types(sl.geometrydef(), sl.max_measure_depth())
+    path_segments = path_segment.path_segments(sl.well_path(), geometry_types, np.array(simulation_data.columns))
+    casing_shoes = path_segment.casing_shoes(path_segments, geometry_types)
+    return path_segment.get_geometry_response(path_segments, casing_shoes, simulation_data)
 
 @app.get('/api/simulations/{well}/{connection}/pipepressure.png')
-def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = -4, vmax: float = 4, api_key: APIKey = Depends(get_api_key)):
-    data = get_image_data(f'{simulation_dir}/{well}/{connection}')
+def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = None, vmax: float = None, api_key: APIKey = Depends(get_api_key)):
+    sl = SimulationLoader(simulation_dir, well, connection)
+    pressure_per_meter = sl.fluiddef().iloc[0][0] * 9.81 * 1e-5
+    data = path_segment.get_image_data(sl.well_path(), sl.pipepressure(), pressure_per_meter)
 
     with tempfile.NamedTemporaryFile(mode='w+b', suffix='.png', delete=False) as image:
         plt.imsave(image.name, data, cmap=cmap, vmin=vmin, vmax=vmax)
         return FileResponse(image.name, media_type='image/png', headers={ 'Cache-Control': 'max-age=120' })
 
+@app.get('/api/simulations/{well}/{connection}/annuluspressure.png')
+def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = None, vmax: float = None, api_key: APIKey = Depends(get_api_key)):
+    sl = SimulationLoader(simulation_dir, well, connection)
+    pressure_per_meter = sl.fluiddef().iloc[0][0] * 9.81 * 1e-5
+    data = path_segment.get_image_data(sl.well_path(), sl.annuluspressure(), pressure_per_meter)
 
-# Well_1 -> vmin=700, vmax=950
-# Well_2 -> vmin=160, vmax=170
-#@app.get('/api/simulations/{well}/{connection}/pipestress.png')
-#def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = 700, vmax: float = 950):
-#    pipestress = parse_pipestress(f'{simulation_dir}/{well}/{connection}')
-#    data = pipestress.transpose()
-#    with tempfile.NamedTemporaryFile(mode='w+b', suffix='.png', delete=False) as image:
-#        plt.imsave(image.name, data, cmap=cmap, vmin=vmin, vmax=vmax)
-#        return FileResponse(image.name, media_type='image/png', headers={ 'Cache-Control': 'max-age=120' })
+    with tempfile.NamedTemporaryFile(mode='w+b', suffix='.png', delete=False) as image:
+        plt.imsave(image.name, data, cmap=cmap, vmin=vmin, vmax=vmax)
+        return FileResponse(image.name, media_type='image/png', headers={ 'Cache-Control': 'max-age=120' })
+
+@app.get('/api/simulations/{well}/{connection}/pipestress.png')
+def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = None, vmax: float = None, api_key: APIKey = Depends(get_api_key)):
+    sl = SimulationLoader(simulation_dir, well, connection)
+    pressure_per_meter = sl.fluiddef().iloc[0][0] * 9.81 * 1e-5
+    data = path_segment.get_image_data(sl.well_path(), sl.pipestress(), -0.75)
+
+    with tempfile.NamedTemporaryFile(mode='w+b', suffix='.png', delete=False) as image:
+        plt.imsave(image.name, data, cmap=cmap, vmin=vmin, vmax=vmax)
+        return FileResponse(image.name, media_type='image/png', headers={ 'Cache-Control': 'max-age=120' })
