@@ -1,9 +1,16 @@
 import './index.scss'
 import { loadImageData, loadSimulation, ensureAuthentication } from './loaders'
-import { createWellPathMesh, createShoeMesh } from './objects/mesh'
-import { changeMaterial } from './objects/material'
-import Timeline, { seconds } from './Timeline'
+import Timeline from './Timeline'
 import Canvas3D from './Canvas3D'
+import Stats from 'stats.js'
+import { createGUIControls } from './GUIControls'
+import * as THREE from 'three'
+import { createBufferAnimationMaterial, changeMaterialImage, changeMaterialType } from './objects/material'
+import { createWellPathBufferGeometry, createCasingShoeBufferGeometry } from './objects/geometry'
+
+const stats = new Stats()
+stats.showPanel(1)
+document.body.appendChild(stats.dom)
 
 const timeline = new Timeline(
   document.getElementById('timeline') as HTMLInputElement,
@@ -11,79 +18,61 @@ const timeline = new Timeline(
 )
 
 const canvas3D = new Canvas3D(document.getElementById('canvas-3d') as HTMLCanvasElement)
-canvas3D.setCamera({ x: 0, y: 0, z: 0, d: 30 })
-canvas3D.addLight(-100, -100, -100)
-canvas3D.addLight(100, 100, 100)
-canvas3D.addLight(100, -100, 100)
+const wellPathMesh = new THREE.Mesh(new THREE.Geometry(), createBufferAnimationMaterial())
+const casingShoeMesh = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 'gray' }))
+canvas3D.scene.add(wellPathMesh)
+canvas3D.scene.add(casingShoeMesh)
+canvas3D.addLight({ posx: -100, posy: -100, posz: -100 })
+canvas3D.addLight({ posx:  100, posy:  100, posz:  100 })
+canvas3D.addLight({ posx:  100, posy: -100, posz:  100 })
+
 
 // Start the main function after ensuring authentication
-ensureAuthentication().then(main).catch(err => alert(err.message))
+ensureAuthentication().then(main)
 
-async function main(data) {  
-  const [, well, connection] = window.location.pathname.split('/')
-  if (!well) return window.location.assign(`/Well_2/Connection_4739mMD`)
-  if (!(data[well] instanceof Array)) throw Error(`"${well}" is not a valid well. Please select one of: \n${Object.keys(data).join('\n')}`)
-  if (!connection) return window.location.assign(`/${well}/${data[well][data[well].length - 1]}`)
-  if (!(isInside(connection, data[well]))) throw Error(`"${connection}" is not valid for this well. Please select one of: \n${data[well].join('\n')}`)
+async function main (data) {
+  const gui = createGUIControls(data)
 
-  const imageUrl = (well === 'Well_1')
-    ? `/api/simulations/${well}/${connection}/pipepressure.png?vmax=15&vmin=-15&cmap=inferno`
-    : `/api/simulations/${well}/${connection}/pipepressure.png?vmax=5&vmin=-5&cmap=inferno`
-  
-  const [ simulationData, imageData ] = await Promise.all([
-    loadSimulation(well, connection),
-    loadImageData(imageUrl, { maxSize: 4096 /* max DataTexture size */ })
-  ])
-  timeline.set({
-    imageUrl: imageData.objectURL,
-    min: seconds(simulationData.time.min),
-    max: seconds(simulationData.time.max),
-    step: seconds(simulationData.time.step)
+  gui.config.texture.subscribe(async textureConfig => {
+    timeline.setImageUrl('')
+    const imageUrl = `/api/simulations/${textureConfig.well}/${textureConfig.connection}/${textureConfig.simulation}.png?cmap=${textureConfig.cmap}` + 
+      (textureConfig.customThresholds ? `&vmin=${textureConfig.vmin}&vmax=${textureConfig.vmax}` : '')
+    
+    const imageData = await loadImageData(imageUrl, { maxSize: 4096 })
+    timeline.setImageUrl(imageData.objectURL)
+    changeMaterialImage(wellPathMesh, imageData)
+  })
+
+  gui.config.geometry.subscribe(async geometryConfig => {
+    const geometryData = await loadSimulation(geometryConfig.well, geometryConfig.connection, geometryConfig.radiusScaling)
+    wellPathMesh.geometry = createWellPathBufferGeometry(geometryData.pathSegments)
+    casingShoeMesh.geometry = createCasingShoeBufferGeometry(geometryData.casingShoes)
+    console.log(geometryData.centre)
+    canvas3D.setCamera({ ...geometryData.centre, distance: 3000 })
+    timeline.setTimeDimensions(geometryData.time)
+    canvas3D.replaceLabels(geometryData.casingShoes)
   })
   
-  const wellPath = createWellPathMesh(simulationData.pathSegments, imageData)
-  canvas3D.scene.add(wellPath)
-  
-  simulationData.casingShoes
-    .map(({ label, posx, posy, posz }) => canvas3D.addLabel(label, posx, posy, posz))
-  simulationData.casingShoes
-    .map(createShoeMesh)
-    .map(mesh => canvas3D.scene.add(mesh))
-
-
-  window.addEventListener('keydown', e => {
-    if (e.keyCode === 81) changeMaterial(wellPath, 'basic')
-    if (e.keyCode === 87) changeMaterial(wellPath, 'standard')
+  gui.config.timeline.subscribe(async timelineConfig => {
+    timeline.speedup = timelineConfig.speedup
+    timeline.update()
   })
   
-  
+  gui.config.material.subscribe(async materialConfig => {
+    if (materialConfig.useLightModel) changeMaterialType(wellPathMesh, 'standard')
+    else changeMaterialType(wellPathMesh, 'basic')
+  })
+
   requestAnimationFrame(tNow => render(0, tNow))
   function render(tPrev: number, tNow: number) {
+    stats.begin()
     timeline.addTime(tNow - tPrev)
-    wellPath.material['uniforms'].time.value = timeline.normalizedTime
+    if (wellPathMesh.material['uniforms']) wellPathMesh.material['uniforms'].time.value = timeline.normalizedTime
     canvas3D.render()
+    stats.end()
     requestAnimationFrame(tNext => render(tNow, tNext))
   }
 }
 
-window.addEventListener('keydown', e => {
-  if (e.keyCode === 187 || e.keyCode === 107) {
-    // + key (on normal keyboard or numpad)
-    timeline.speedup++
-    timeline.update()
-  }
-
-  else if (e.keyCode === 189 || e.keyCode === 109) {
-    // - key (on normal keyboard or numpad)
-    timeline.speedup--
-    timeline.update()
-  }
-})
-
-
-// Key Codes
-// Q(81), W(87), A(65), S(83)
-function isInside(item: string, arr: Array<string>) {
-  for (const el of arr) if (el === item) return true
-  return false
-}
+// Prevent default behaviour on mobile devices when trying to zoom.
+window.addEventListener("touchmove", e => e.preventDefault(), { capture: true, passive: false })

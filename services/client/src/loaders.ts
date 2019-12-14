@@ -5,7 +5,7 @@ export type Rotation = { rotx: number, roty: number, rotz: number }
 export type TimeSequence = { min: number, max: number, step: number }
 export type CasingShoe = Position & Rotation & { label: string, radius: number }
 export type PathSegment = Position & Rotation & { radius: number, length: number, mdTextureMap: number }
-export type SimulationData = { pathSegments: Array<PathSegment>, casingShoes: Array<CasingShoe>, time: TimeSequence }
+export type GeometryData = { pathSegments: Array<PathSegment>, casingShoes: Array<CasingShoe>, time: TimeSequence, centre: Position }
 
 export async function ensureAuthentication() {
   while (true) {
@@ -20,9 +20,9 @@ export async function ensureAuthentication() {
   }
 }
 
-export async function loadSimulation (well: string, connection: string): Promise<SimulationData> {
-  const response = await Axios.get(`/api/simulations/${well}/${connection}`)
-  return response.data as SimulationData
+export async function loadSimulation (well: string, connection: string, radiusScaling: number): Promise<GeometryData> {
+  const response = await Axios.get(`/api/simulations/${well}/${connection}?radius_scaling=${radiusScaling}`)
+  return response.data as GeometryData
 }
 
 export function loadImageData (imageUrl: string, { maxSize = 4096 } = {}): Promise<ImageData & { objectURL: string }> {

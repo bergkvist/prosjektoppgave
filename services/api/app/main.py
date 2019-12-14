@@ -38,16 +38,11 @@ async def get_api_key(
 
 
 @app.get('/api')
-def get(api_key: APIKey = Depends(get_api_key)):
-    """Can be used to check the availability of the API."""
-    return "Hello from the specialization project API of Tobias Bergkvist"
+def get():
+    return "Hello from the specialization project API of Tobias Bergkvist."
 
 @app.get('/api/simulations')
 def get_wells_and_connections(api_key: APIKey = Depends(get_api_key)):
-    """This is documentation?
-    
-    Example
-    """
     wells = sorted(os.listdir(simulation_dir))
     dirs = { 
         well: sorted(os.listdir(f'{simulation_dir}/{well}'))
@@ -57,17 +52,14 @@ def get_wells_and_connections(api_key: APIKey = Depends(get_api_key)):
 
 @app.get('/api/simulations/{well}')
 def get_connections(well: str, api_key: APIKey = Depends(get_api_key)):
-    """Get available connections for a specific well as a list
-    """
     return sorted(os.listdir(f'{simulation_dir}/{well}'))
 
-
 @app.get('/api/simulations/{well}/{connection}')
-def get_simulation(well: str, connection: str, api_key: APIKey = Depends(get_api_key)):
+def get_simulation(well: str, connection: str, radius_scaling: float = 100, api_key: APIKey = Depends(get_api_key)):
     sl = SimulationLoader(simulation_dir, well, connection)
     simulation_data = sl.pipepressure()
-    geometry_types = path_segment.geometry_types(sl.geometrydef(), sl.max_measure_depth())
-    path_segments = path_segment.path_segments(sl.well_path(), geometry_types, np.array(simulation_data.columns))
+    geometry_types = path_segment.geometry_types(sl.geometrydef())
+    path_segments = path_segment.path_segments(sl.well_path(), geometry_types, np.array(simulation_data.columns), radius_scaling)
     casing_shoes = path_segment.casing_shoes(path_segments, geometry_types)
     return path_segment.get_geometry_response(path_segments, casing_shoes, simulation_data)
 
@@ -94,7 +86,6 @@ def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = N
 @app.get('/api/simulations/{well}/{connection}/pipestress.png')
 def get_image(well: str, connection: str, cmap: str = 'inferno', vmin: float = None, vmax: float = None, api_key: APIKey = Depends(get_api_key)):
     sl = SimulationLoader(simulation_dir, well, connection)
-    pressure_per_meter = sl.fluiddef().iloc[0][0] * 9.81 * 1e-5
     data = path_segment.get_image_data(sl.well_path(), sl.pipestress(), -0.75)
 
     with tempfile.NamedTemporaryFile(mode='w+b', suffix='.png', delete=False) as image:

@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from math import pi
-import re
 
 def parse_txt(file_lines: list):
     data = pd.Series(file_lines).str.split('#', n=1, expand=True)
@@ -18,9 +17,6 @@ class SimulationLoader:
 
     def path(self, file_name: str):
         return f'{self.data_dir}/{self.well}/{self.connection}/{file_name}'
-
-    def max_measure_depth(self):
-        return float(re.findall(r'Connection_(\d+)mMD', self.connection)[0])
 
     def pipepressure(self):
         return pd.read_csv(self.path('pipepressure.csv'), index_col=0).rename(columns=float)

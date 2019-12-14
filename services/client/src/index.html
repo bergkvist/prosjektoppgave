@@ -16,12 +16,6 @@
     window.addEventListener('resize', function() {
       document.documentElement.style.setProperty('--vh', (0.01 * window.innerHeight) + 'px')
     }, false)
-
-    // This makes the app more mobile friendly (since the default touch gestures are prevented)
-    window.addEventListener("touchstart",  function(e) { e.preventDefault() }, { capture: true, passive: false })
-    window.addEventListener("touchmove",   function(e) { e.preventDefault() }, { capture: true, passive: false })
-    window.addEventListener("touchend",    function(e) { e.preventDefault() }, { capture: true, passive: false })
-    window.addEventListener("touchcancel", function(e) { e.preventDefault() }, { capture: true, passive: false })
   </script>
 </head>
 <body>

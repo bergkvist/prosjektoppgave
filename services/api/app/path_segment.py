@@ -28,7 +28,7 @@ def vector(length: pd.Series, rotation: pd.DataFrame) -> pd.DataFrame:
     assert len(length) == len(rotation)
     assert set(['roty', 'rotz']).issubset(rotation.columns)
     return pd.DataFrame({
-        #      Ry(roty)              Rz(rotz)        unrotated vector
+        #      Ry(roty)              Rz(rotz)        vector before rotation
         # [  cos   0   sin ]   [ cos  -sin    0  ]   [    0    ]
         # [   0    1    0  ] . [ sin   cos    0  ] . [ -length ] 
         # [ -sin   0   cos ]   [  0     0     1  ]   [    0    ]
@@ -41,7 +41,7 @@ def vector(length: pd.Series, rotation: pd.DataFrame) -> pd.DataFrame:
 
 def position(vector: pd.DataFrame) -> pd.DataFrame:
     assert set(['vecx', 'vecy', 'vecz']).issubset(vector.columns)
-    position_vectors = 0.5 * (vector + vector.shift(1, fill_value=0.0)).cumsum()
+    position_vectors = vector.cumsum() - 0.5 * vector
     return pd.DataFrame({
         'posx': position_vectors.vecx,
         'posy': position_vectors.vecy,
@@ -70,7 +70,7 @@ def md_texture_map(well_path: pd.DataFrame, simulation_mds: np.array) -> pd.Seri
         name='mdTextureMap'
     )
 
-def geometry_types(geometrydef: pd.DataFrame, max_measure_depth: float):
+def geometry_types(geometrydef: pd.DataFrame):
     meters_per_inch = 0.0254
     radii = 0.5 * meters_per_inch * np.array([ 
         geometrydef.iloc[1][0], # Riser inner diameter in inches
@@ -79,27 +79,27 @@ def geometry_types(geometrydef: pd.DataFrame, max_measure_depth: float):
         geometrydef.iloc[0][0]  # Open hole diameter in inches
     ])
     mds = np.array([
-        0,                                               # Measure depth: start of riser
-        geometrydef.iloc[2][0],                          # Measure depth: end of riser
-        geometrydef.iloc[4][0],                          # Measure depth: end of cased section
-        geometrydef.iloc[4][0] + geometrydef.iloc[6][0], # Measure depth: end of liner
-        max_measure_depth                                # Measure depth: end of open hole
+        0,                                                                       # start of riser
+        geometrydef.iloc[2][0],                                                  # end of riser
+        geometrydef.iloc[4][0],                                                  # end of cased section
+        geometrydef.iloc[4][0] + geometrydef.iloc[6][0],                         # end of liner
+        geometrydef.iloc[7][0] + geometrydef.iloc[8][0] + geometrydef.iloc[9][0] # end of open hole
     ])
-    return list(filter(lambda x: x['length'] > 0, [
-        { 'name': 'riser',         'radius': radii[0], 'md_start': mds[0], 'md_stop': mds[1], 'length': mds[1] - mds[0] },
-        { 'name': 'cased section', 'radius': radii[1], 'md_start': mds[1], 'md_stop': mds[2], 'length': mds[2] - mds[1] },
-        { 'name': 'liner',         'radius': radii[2], 'md_start': mds[2], 'md_stop': mds[3], 'length': mds[3] - mds[2] },
-        { 'name': 'open hole',     'radius': radii[3], 'md_start': mds[3], 'md_stop': mds[4], 'length': mds[4] - mds[3] }
+    # We remove anything of length 0 (or negative length?)
+    return list(filter(lambda x: x['md_stop'] > x['md_start'], [
+        { 'name': 'riser',         'radius': radii[0], 'md_start': mds[0], 'md_stop': mds[1] },
+        { 'name': 'cased section', 'radius': radii[1], 'md_start': mds[1], 'md_stop': mds[2] },
+        { 'name': 'liner',         'radius': radii[2], 'md_start': mds[2], 'md_stop': mds[3] },
+        { 'name': 'open hole',     'radius': radii[3], 'md_start': mds[3], 'md_stop': mds[4] }
     ]))
 
 # TODO: Consider moving out of this file
-def path_segments(well_path: pd.DataFrame, geometry_types: list, simulation_mds: np.array):
-    length_scaling = 1 / 100
-    segment_length = length(well_path) * length_scaling
+def path_segments(well_path: pd.DataFrame, geometry_types: list, simulation_mds: np.array, radius_scaling: float):
+    segment_length = length(well_path)
     segment_rotation = rotation(well_path)
     segment_vector = vector(segment_length, segment_rotation)
     segment_position = position(segment_vector)
-    segment_radius = radius(well_path, geometry_types)
+    segment_radius = radius(well_path, geometry_types) * radius_scaling
     segment_md_texture_map = md_texture_map(well_path, simulation_mds)
     return pd.concat([ well_path, segment_length, segment_rotation, segment_vector, segment_position, segment_radius, segment_md_texture_map ], axis=1)
 
@@ -110,7 +110,12 @@ def find_centre(path_segments: pd.DataFrame):
     vector = path_segments[['vecx', 'vecy', 'vecz']]
     v = vector.rename(columns={ 'vecx': 'posx', 'vecy': 'posy', 'vecz': 'posz' })
     p = pd.concat([position - v, position + v])
-    return 0.5 * (p.max() + p.min())
+    c = 0.5 * (p.max() + p.min())
+    return {
+        'posx': c.posx, 
+        'posy': c.posy,
+        'posz': c.posz
+    }
 
 def casing_shoe(path_segments: pd.DataFrame, geometry_type: dict):
     last_segment = path_segments[path_segments.md <= geometry_type['md_stop']].iloc[-1]
@@ -143,29 +148,20 @@ def get_time(simulation_data: pd.DataFrame):
 def get_geometry_response(path_segments: pd.DataFrame, casing_shoes: pd.DataFrame, simulation_data: pd.DataFrame) -> dict:
     final_path_properties = ['posx', 'posy', 'posz', 'rotx', 'roty', 'rotz', 'length', 'radius', 'mdTextureMap']
     assert set(final_path_properties + ['vecx', 'vecy', 'vecz']).issubset(path_segments.columns)
-    visible = path_segments[(path_segments.radius > 0.0) & (path_segments.length > 0.0)]
-
-    centered_casing_shoes = casing_shoes.copy()
-    centered_path_segments = visible.copy()
-    centre = find_centre(visible)
-
-    centered_path_segments.posx -= centre.posx
-    centered_path_segments.posy -= centre.posy
-    centered_path_segments.posz -= centre.posz
-
-    centered_casing_shoes.posx -= centre.posx
-    centered_casing_shoes.posy -= centre.posy
-    centered_casing_shoes.posz -= centre.posz
-    
+    visible_path_segments = path_segments[(path_segments.radius > 0.0) & (path_segments.length > 0.0)]
     return {
         'time': get_time(simulation_data),
-        'casingShoes': centered_casing_shoes.to_dict(orient='records'),
-        'pathSegments': centered_path_segments[final_path_properties].to_dict(orient='records'),
+        'centre': find_centre(visible_path_segments),
+        'casingShoes': casing_shoes.to_dict(orient='records'),
+        'pathSegments': visible_path_segments[final_path_properties].to_dict(orient='records'),
     }
 
 
-def get_image_data(well_path, simulation_data, pressure_per_meter):
-    height = scipy.interpolate.interp1d(well_path.md, well_path.tvd)
-    p = simulation_data.transpose()
-    s = pd.Series(pressure_per_meter * height(p.index.astype(float)), p.index)
-    return p.subtract(s, axis='rows')
+def get_image_data(well_path: pd.DataFrame, simulation_data: pd.DataFrame, pressure_per_meter: float):
+    assert set(['md', 'tvd']).issubset(well_path)
+    vertical_depth = scipy.interpolate.interp1d(well_path.md, well_path.tvd)
+    absolute = simulation_data.transpose()
+    simulation_depths = vertical_depth(absolute.index.astype(float))
+    due_to_gravity = pd.Series(pressure_per_meter * simulation_depths, absolute.index)
+    relative = absolute.subtract(due_to_gravity, axis='rows')
+    return relative

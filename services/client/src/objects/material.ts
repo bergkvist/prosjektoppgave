@@ -1,5 +1,7 @@
 import * as BAS from 'three-bas'
-import { DataTexture, RGBAFormat, Mesh } from 'three'
+import { DataTexture, RGBAFormat, Mesh, Uniform, Vector3 } from 'three'
+
+type MaterialType = 'basic' | 'standard'
 
 function createDataTexture (imageData: ImageData): DataTexture {
   if (imageData.data.length !== 4 * imageData.width * imageData.height) {
@@ -14,24 +16,28 @@ function createDataTexture (imageData: ImageData): DataTexture {
   )
 }
 
-function createMaterialConfig (dataTexture: DataTexture, time: number) {
+function createMaterialConfig () {
   return {
     uniforms: {
-      time: { value: time },
-      dataTexture: { value: dataTexture },
+      time: { value: 0 },
+      dataTexture: { value: null },
+      hasTexture: { value: false },
+      defaultColor: new Uniform(new Vector3(0.3, 0.3, 0.3)) // Missing simulation data is gray
     },
     vertexParameters: [
       'uniform highp float time;',
       'uniform sampler2D dataTexture;',
+      'uniform bool hasTexture;',
+      'uniform vec3 defaultColor;',
       'attribute highp float md;',
     ],
     varyingParameters: [
       'varying vec3 vColor;',
     ],
     vertexColor: [
-      'vColor = (md >= 0.0 && md <= 1.0)',
+      'vColor = (md >= 0.0 && md <= 1.0 && hasTexture)',
       '  ? texture2D(dataTexture, vec2(time, md)).xyz //vec3(md, time, 0.0)',
-      '  : vec3(0.3, 0.3, 0.3);' // Missing simulation data is gray
+      '  : defaultColor;'
     ],
     fragmentDiffuse: [
       'diffuseColor.rgb *= vColor;'
@@ -39,30 +45,29 @@ function createMaterialConfig (dataTexture: DataTexture, time: number) {
   }
 }
 
-type MaterialType = 'basic' | 'standard'
-function _createBufferAnimationMaterial(materialType: MaterialType, config) {
-  if (materialType === 'basic') {
-    return new BAS.BasicAnimationMaterial(config)
-  }
-
-  if (materialType === 'standard') {
-    return new BAS.StandardAnimationMaterial(config)
-  }
-
-  throw Error(`Invalid materialType: ${materialType}`)
+function createMaterialClass(materialType: MaterialType) {
+  if (materialType === 'standard') return BAS.StandardAnimationMaterial
+  if (materialType === 'basic') return BAS.BasicAnimationMaterial
 }
 
-export function createBufferAnimationMaterial (materialType: MaterialType, imageData: ImageData, time: number = 0) {
-  const dataTexture = createDataTexture(imageData)
-  const config = createMaterialConfig(dataTexture, time)
-  return _createBufferAnimationMaterial(materialType, config)
+export function createBufferAnimationMaterial (materialType: MaterialType = 'basic') {
+  const materialConfig = createMaterialConfig()
+  const Material = createMaterialClass(materialType)
+  const material = new Material(materialConfig)
+  return material
 }
 
-export function changeMaterial (wellPath: Mesh, materialType: MaterialType) {
-  if (!wellPath.material['uniforms']) throw Error('Invalid mesh (does not have uniforms)')
-  const config = createMaterialConfig(
-    wellPath.material['uniforms'].dataTexture.value,
-    wellPath.material['uniforms'].time.value
-  )
-  wellPath.material = _createBufferAnimationMaterial(materialType, config)
+export function changeMaterialType (mesh: Mesh, materialType: MaterialType) {
+  if (!mesh.material['uniforms']) throw Error('Invalid mesh (does not have uniforms)')
+  const newMaterial = createBufferAnimationMaterial(materialType)
+  newMaterial['uniforms'].dataTexture = mesh.material['uniforms'].dataTexture
+  newMaterial['uniforms'].time = mesh.material['uniforms'].time
+  newMaterial['uniforms'].hasTexture = mesh.material['uniforms'].hasTexture
+  newMaterial['uniforms'].defaultColor = mesh.material['uniforms'].defaultColor
+  mesh.material = newMaterial
+}
+
+export function changeMaterialImage (mesh: Mesh, imageData: ImageData) {
+  mesh.material['uniforms'].dataTexture.value = createDataTexture(imageData)
+  mesh.material['uniforms'].hasTexture.value = true
 }
