@@ -5,7 +5,7 @@ type MaterialType = 'basic' | 'standard'
 
 function createDataTexture (imageData: ImageData): DataTexture {
   if (imageData.data.length !== 4 * imageData.width * imageData.height) {
-    console.log(imageData)
+    console.error(imageData)
     throw Error(`createDataTexture: image data (${imageData.data.length / 4}) does not match width * height (${imageData.width * imageData.height})`)
   }
   return new DataTexture(
@@ -51,8 +51,8 @@ function createMaterialClass(materialType: MaterialType) {
 }
 
 export function createBufferAnimationMaterial (materialType: MaterialType = 'basic') {
-  const materialConfig = createMaterialConfig()
   const Material = createMaterialClass(materialType)
+  const materialConfig = createMaterialConfig()
   const material = new Material(materialConfig)
   return material
 }

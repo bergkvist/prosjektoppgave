@@ -10,6 +10,20 @@ header-includes: |
 
 \tableofcontents{}
 \newpage{}
+# Abstract
+# Sammendrag
+Når man driller etter olje fra en flytende rigg eller et skip, så gynger platformen opp og ned på grunn av bølgene. Normalt blir røret regulert så det står stille selv om platformen/skipet går opp og ned. Men når man skal skru på nye rørsegmenter må røret holdes fast. 
+
+Dette fører til at røret gynger opp og ned sammen med platformen, og blir som et stempel - som fører til store propagerende trykkendringer.
+
+I midten av/ inne i brønnen har man det som kalles en pipe. Inne i pipen pumper man en væske nedover (borevæske) som går opp igjen på sidene og tar med seg stein, olje og gass. I riser/cased section har man metall rundt på utsiden der væsken kommer opp igjen, mens i "open hole" er det bare berggrunn rundt. Dersom trykket blir for høyt eller lavt kan det føre til at bergrunnen slår sprekker eller kollapser inn.
+
+Heavelock har laget en simulator som kan forutsi hvor store trykkendringene langs hele brønnbanen vil bli basert på værforhold og andre paramtere. Hensikten med denne prosjektoppgaven er å visualisere disse simuleringsresultatene på en intuitiv måte - slik at hvem som helst kan forstå den.
+
+Visualiseringen (i 3D) implementeres for nettlesere, kun ved hjelp av verktøy som er open-source/gratis å bruke. 
+
+
+
 # Introduction
 ## Background: The Heave Problem
 When drilling from a floating rig or drilling ship, the heaving motion of the floater causes major pressure fluctuations in the well when the drill pipe is in slips during connections. Pressure fluctuations in the order of 10-20 bars have been observed in practice, sometimes giving an unacceptable risk of mud loss or kick. The only remedy for the problem is to wait for wind and waves to subside. There is a potential for saving time and cost by obtaining accurate information about downhole conditions on which to base the decision to wait or drill forward. HeaveLock has developed a simulator that predicts downhole pressure fluctuations based on weather information, response amplitude operator of the rig, well geometry, fluid properties etc. The simulator produces a large amount of data and the data needs to be visualized to the user in an easy way. In this project work, the objective is to visualize simulator data for a chosen well by developing a web-based interface.
@@ -114,7 +128,7 @@ The ability to write code in a highly abstracted scripting language is great for
 
 
 # Implementation
-## Algorithm: Visualizing the well path
+## Algorithm: Turning the well path into cylinders
 ![To represent the well path, we are going to draw one cylinder for each segment. A consequence of using cylinders to represent each segment is that we will get visible gaps between when they are rotated relative to each other (as highlighted in the picture)](./cylinders.png){ width=256px }
 
 We define a cylinder to have the following properties:
@@ -132,7 +146,7 @@ We define a cylinder to have the following properties:
 
 
 
-From our well_path.csv, we have the following columns of interest:
+From our `well_path.csv`, we have the following columns of interest:
 
 | name     | description |
 |----------|-------------|
@@ -190,7 +204,7 @@ $$
 
 You may now have noticed that we have every cylinder property wee need, except for one (the radius). The problem we are now faced with is that nothing in `well_path.csv` can tell us what the radius for a specific segment is supposed to be. To figure out this, we have to look at `geometrydef.txt` (which defines the different types of segments).
 
-## Algorithm: Finding the radiuses/geometry types
+## Algorithm: Finding the cylinder radiuses/geometry types
 The `geometrydef.txt`-file looks like the following (where the index represents the line number): 
 
 | index | description (geometrydef.txt) |
@@ -276,6 +290,11 @@ export function createCylinderMesh (pathSegment: PathSegment) {
 
 # User Guide
 # Further Work
+Get the min/max thresholds of the image from the api.
+Show the thresholds 
+Allow for defining a discrete colormap with custom thresholds.
+
+
 
 # Abbreviations and terms
 ## Abbreviations

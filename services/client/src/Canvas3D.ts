@@ -7,6 +7,7 @@ type CameraSetpoint = Position & { distance: number }
 type Label = Position & { label: string }
 
 export default class Canvas3D {
+  dynamicStyleheet = document.createElement('style')
   canvas: HTMLCanvasElement
   renderer: THREE.WebGLRenderer
   camera: THREE.PerspectiveCamera
@@ -25,6 +26,8 @@ export default class Canvas3D {
     this.labelRenderer.domElement.style.position = 'absolute'
     this.labelRenderer.domElement.style.top = '0'
     document.body.appendChild(this.labelRenderer.domElement)
+    document.head.appendChild(this.dynamicStyleheet)
+    this.dynamicStyleheet.type = 'text/css'
     window.addEventListener('resize', () => this.onresize())
     this.onresize()
   }
@@ -52,15 +55,18 @@ export default class Canvas3D {
       const labelDiv = document.createElement('div')
       labelDiv.className = 'label'
       labelDiv.textContent = label.label
-      labelDiv.style.marginTop = '-1em'
-      labelDiv.style.color = 'white'
-      labelDiv.style.backgroundColor = 'rgba(0,0,0,0.6)'
-      labelDiv.style.fontFamily = 'sans serif'
-      labelDiv.style.fontSize = '16px'
       const labelObject = new CSS2DObject(labelDiv)
       labelObject.position.set(label.posx, label.posy, label.posz)
       this.labelGroup.add(labelObject)
     }
+  }
+
+  setLabelVisibility({ visible }: { visible: boolean }) {
+    if (visible) {
+      this.dynamicStyleheet.innerHTML = '.label { visibility: visible; }'
+    } else {
+      this.dynamicStyleheet.innerHTML = '.label { visibility: hidden; }'
+    }    
   }
 
   setCamera({ posx, posy, posz, distance }: CameraSetpoint) {

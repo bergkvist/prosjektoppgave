@@ -48,6 +48,7 @@ export default class Timeline {
     this.min = min
     this.max = max
     this.step = step
+    this.time = min
     this.update()
   }
 

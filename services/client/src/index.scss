@@ -4,6 +4,14 @@ $progress-width: calc(100vw - #{$timestamp-width});
 $canvas-height: calc(100 * var(--vh) - #{$progress-height});
 $canvas-height-fallback: calc(100vh - #{$progress-height});
 
+.label {
+    margin-top: -1em;
+    color: rgba(255,255,255,0.8);
+    background-color: rgba(0, 0, 0, 0.5);
+    font-family: sans-serif;
+    font-size: 16px;
+}
+
 body {
     margin: 0;
     padding: 0;

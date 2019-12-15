@@ -6,9 +6,6 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>3DWell</title>
   <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js"></script>
-
-  <!--script src="https://cdn.lr-ingest.io/LogRocket.min.js" crossorigin="anonymous"></script>
-  <script>window.LogRocket && window.LogRocket.init('q5npaz/specialization-project');</script-->
   $css
   <script>
     // This makes view-height units work on mobile: https://css-tricks.com/the-trick-to-viewport-units-on-mobile/
@@ -16,6 +13,8 @@
     window.addEventListener('resize', function() {
       document.documentElement.style.setProperty('--vh', (0.01 * window.innerHeight) + 'px')
     }, false)
+    // Prevent default behaviour on mobile devices when trying to zoom.
+    window.addEventListener("touchmove", function(e) { e.preventDefault() })
   </script>
 </head>
 <body>
