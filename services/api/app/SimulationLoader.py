@@ -1,22 +1,17 @@
+# Author: Tobias Bergkvist
+# Purpose: Load/parse data/config files for a specific HeaveSIM simulation.
+
 import pandas as pd
 import numpy as np
 from math import pi
 
-def parse_txt(file_lines: list):
-    data = pd.Series(file_lines).str.split('#', n=1, expand=True)
-    data.columns = ['value', 'description']
-    data.value = data.value.astype(float)
-    data.description = data.description.str.strip()
-    return data.set_index('description')
 
 class SimulationLoader:
-    def __init__(self, data_dir: str, well: str, connection: str):
+    def __init__(self, data_dir: str):
         self.data_dir = data_dir
-        self.well = well
-        self.connection = connection
 
     def path(self, file_name: str):
-        return f'{self.data_dir}/{self.well}/{self.connection}/{file_name}'
+        return f'{self.data_dir}/{file_name}'
 
     def pipepressure(self):
         return pd.read_csv(self.path('pipepressure.csv'), index_col=0).rename(columns=float)
@@ -43,3 +38,11 @@ class SimulationLoader:
             'Tvd': 'tvd',
             'TVD(m)': 'tvd'
         })[['md', 'inc', 'azi', 'tvd']]
+
+
+def parse_txt(file_lines: list):
+    data = pd.Series(file_lines).str.split('#', n=1, expand=True)
+    data.columns = ['value', 'description']
+    data.value = data.value.astype(float)
+    data.description = data.description.str.strip()
+    return data.set_index('description')

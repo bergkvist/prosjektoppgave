@@ -19,28 +19,28 @@ function createDataTexture (imageData: ImageData): DataTexture {
 function createMaterialConfig () {
   return {
     uniforms: {
-      time: { value: 0 },
+      imageColumn: { value: 0 },
       dataTexture: { value: null },
       hasTexture: { value: false },
       defaultColor: new Uniform(new Vector3(0.3, 0.3, 0.3)) // Missing simulation data is gray
     },
     vertexParameters: [
-      'uniform highp float time;',
       'uniform sampler2D dataTexture;',
       'uniform bool hasTexture;',
       'uniform vec3 defaultColor;',
-      'attribute highp float md;',
+      'uniform highp float imageColumn;',
+      'attribute highp float imageRow;',
     ],
     varyingParameters: [
-      'varying vec3 vColor;',
+      'varying vec3 vertexColor;',
     ],
     vertexColor: [
-      'vColor = (md >= 0.0 && md <= 1.0 && hasTexture)',
-      '  ? texture2D(dataTexture, vec2(time, md)).xyz //vec3(md, time, 0.0)',
+      'vertexColor = (imageRow >= 0.0 && imageRow <= 1.0 && hasTexture)',
+      '  ? texture2D(dataTexture, vec2(imageColumn, imageRow)).xyz',
       '  : defaultColor;'
     ],
     fragmentDiffuse: [
-      'diffuseColor.rgb *= vColor;'
+      'diffuseColor.rgb *= vertexColor;'
     ],
   }
 }
@@ -61,7 +61,7 @@ export function changeMaterialType (mesh: Mesh, materialType: MaterialType) {
   if (!mesh.material['uniforms']) throw Error('Invalid mesh (does not have uniforms)')
   const newMaterial = createBufferAnimationMaterial(materialType)
   newMaterial['uniforms'].dataTexture = mesh.material['uniforms'].dataTexture
-  newMaterial['uniforms'].time = mesh.material['uniforms'].time
+  newMaterial['uniforms'].imageColumn = mesh.material['uniforms'].imageColumn
   newMaterial['uniforms'].hasTexture = mesh.material['uniforms'].hasTexture
   newMaterial['uniforms'].defaultColor = mesh.material['uniforms'].defaultColor
   mesh.material = newMaterial

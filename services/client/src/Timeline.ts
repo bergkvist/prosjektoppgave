@@ -19,24 +19,17 @@ export default class Timeline {
     this.update()
     
     this.inputElement.oninput = () => {
-      this.time = Number(this.inputElement.value)
+      this.time = this.inputElement.valueAsNumber
       this.update()
     }
     // IE11 Doesn't support oninput for some reason, so for this we will instead use onchange (which works poorly in other browsers)
-    this.inputElement.onchange = this.inputElement.oninput
+    this.inputElement.onchange = this.inputElement.oninput  // Could this cause problems with performance?
 
-    this.timestampElement.onmousedown = () => {
-      this.paused = !this.paused
-      if (this.paused) {
-        this.timestampElement.style.backgroundColor = 'maroon'
-      } else {
-        this.timestampElement.style.backgroundColor = '#111111'
-      }
-    }
+    this.timestampElement.onmousedown = () => this.setPlayer({ paused: !this.paused })
   }
 
   update() {
-    this.timestampElement.innerHTML = `${(this.time).toFixed(1)} s <br /><div style="color:gray; font-size:10px">(${this.speedup.toFixed(0)}x)</div>`
+    this.timestampElement.innerHTML = `${this.time.toFixed(1)} s <br /><div style="color:gray; font-size:10px">(${this.speedup.toFixed(0)}x)</div>`
     this.inputElement.value = String(this.time)
     this.inputElement.min = String(this.min)
     this.inputElement.max = String(this.max)
@@ -55,6 +48,15 @@ export default class Timeline {
   setImageUrl(imageUrl: string) {
     this.inputElement.style.backgroundImage = `url(${imageUrl})`
     this.update()
+  }
+
+  setPlayer({ paused }: { paused: boolean }) {
+    this.paused = paused
+    if (this.paused) {
+      this.timestampElement.style.backgroundColor = 'maroon'
+    } else {
+      this.timestampElement.style.backgroundColor = '#111111'
+    }
   }
 
   addTime(dt: number) {

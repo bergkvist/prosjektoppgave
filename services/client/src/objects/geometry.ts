@@ -18,8 +18,8 @@ export function createWellPathBufferGeometry(pathSegments: Array<PathSegment>): 
       bufferGeometry.applyMatrix(matrixWorld)
 
       const bufferAttribs = new Float32Array(bufferGeometry.getAttribute('position').count)
-      for (let i = 0; i < bufferAttribs.length; i++) bufferAttribs[i] = pathSegment.mdTextureMap
-      bufferGeometry.setAttribute('md', new THREE.Float32BufferAttribute(bufferAttribs, 1))
+      for (let i = 0; i < bufferAttribs.length; i++) bufferAttribs[i] = pathSegment.imageRow
+      bufferGeometry.setAttribute('imageRow', new THREE.Float32BufferAttribute(bufferAttribs, 1))
       return bufferGeometry
     })
   )
