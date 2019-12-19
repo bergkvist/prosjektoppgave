@@ -1,3 +1,8 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Take care of any communication/data exchange with the API. Also ensures authentication with the API.
+ */
+
 import Axios from 'axios'
 import { serialize } from 'cookie'
 export type Position = { posx: number, posy: number, posz: number }

@@ -1,5 +1,10 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Create the THREE.js-geometries for the well path and the casing shoes
+ */
+
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils'
-import { PathSegment, Position, Rotation, CasingShoe } from '../loaders'
+import { PathSegment, Position, Rotation, CasingShoe } from './loaders'
 import * as THREE from 'three'
 
 function getMatrixWorld (posRot: Position & Rotation, { updateParents = true, updateChildren = false } = {}) {

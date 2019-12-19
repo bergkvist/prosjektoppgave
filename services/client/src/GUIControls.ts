@@ -1,3 +1,8 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Abstract away the config menu, and make it emit events based on what needs to happen.
+ */
+
 import * as dat from 'dat.gui'
 import { BehaviorSubject as SubscribableConfig } from 'rxjs'
 import { WellsAndConnections } from './loaders'

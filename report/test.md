@@ -88,7 +88,31 @@ To start with, the well_path.csv-file is loaded using the library d3.js (Data-Dr
 The main advantage of creating a web application is that it allows the application to run on multiple platforms, including desktop (Windows, MacOS, Linux) and mobile (iOS, Android) and many others. Creating native applications for all of these platforms would take a lot more work. Note that browsers are not all the same - and it does take some work to make an application usable across multiple browsers, with both mouse and touch gestures - and a wide variety of display sizes.
 
 # Implementation
+```js
+import { CylinderGeometry, MeshBasicMaterial, Mesh } from 'three'
+import { scene, renderer, camera, pathSegments } from './some-file'
 
+const cylinderMeshes = pathSegments.map(createCylinderMesh)
+cylinderMeshes.forEach(mesh => scene.add(mesh))
+renderLoop()
+
+function createCylinderMesh (pathSegment) {
+  const { posx, posy, posz, rotx, roty, rotz, radius, length } = pathSegment
+  const geometry = new CylinderGeometry(radius, radius, length)
+  const material = new MeshStandardMaterial({ color: 'yellow' })
+  const mesh = new Mesh(geometry, material)
+  mesh.position.set(posx, posy, posz)
+  mesh.rotation.set(rotx, roty, rotz)
+  return mesh
+}
+
+function renderLoop() {
+  renderer.render(scene, camera)
+  // This will call the renderLoop function recursively after each render
+  requestAnimationFrame(renderLoop)
+}
+
+```
 
 ### TypeScript vs JavaScript
 Most of this project will be written in TypeScript. TypeScript is a superset of JavaScript that compiles to regular JavaScript and runs type checks against the code. It also works very well together with Visual Studio Code (as both are created by Microsoft), which massively improves autocomplete and code hints.

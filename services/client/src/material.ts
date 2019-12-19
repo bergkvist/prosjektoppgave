@@ -1,3 +1,8 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Create the THREE.js-material for the well path.
+ */
+
 import * as BAS from 'three-bas'
 import { DataTexture, RGBAFormat, Mesh, Uniform, Vector3 } from 'three'
 

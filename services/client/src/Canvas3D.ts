@@ -1,3 +1,8 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Centralize everything directly related to the canvas/rendering. Also adds OrbitControls for interactive rotations/zoom/pan
+ */
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import * as THREE from 'three'

@@ -1,4 +1,9 @@
-import RangeTouch from 'rangetouch'
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Abstract away everything related to the timeline at the bottom of the screen.
+ */
+
+import RangeTouch from 'rangetouch'  // This is used to make the range input work better on touch devices
 
 export default class Timeline {
   inputElement: HTMLInputElement = null

@@ -1,3 +1,8 @@
+/**
+ * Author: Tobias Bergkvist
+ * Purpose: Connect all of the components of the application together, and run the render loop.
+ */
+
 import * as THREE from 'three'
 import Stats from 'stats.js'
 import './index.scss'
@@ -5,8 +10,8 @@ import Timeline from './Timeline'
 import Canvas3D from './Canvas3D'
 import { createGUIControls } from './GUIControls'
 import { loadImageData, loadWellGeometry, ensureAuthentication, createImageUrl } from './loaders'
-import { createBufferAnimationMaterial, changeMaterialImage, changeMaterialType } from './objects/material'
-import { createWellPathBufferGeometry, createCasingShoeBufferGeometry } from './objects/geometry'
+import { createBufferAnimationMaterial, changeMaterialImage, changeMaterialType } from './material'
+import { createWellPathBufferGeometry, createCasingShoeBufferGeometry } from './geometry'
 
 // fps/ms counter in the corner
 const stats = new Stats()
