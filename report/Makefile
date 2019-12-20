@@ -4,13 +4,13 @@ OUT := report.pdf
 all: $(OUT)
 
 $(OUT): $(IN)
-	pandoc '$(IN)' -o '$(OUT)'
+	pandoc '$(IN)' -o '$(OUT)' --filter pandoc-citeproc --bibliography=references.bib
 
 preview:
 	zathura --fork --log-level=error '$(OUT)'
 
 watch:
-	echo '$(IN)' | entr -c make
+	ls | entr -c make
 
 edit:
 	nohup gedit '$(IN)' >/dev/null &

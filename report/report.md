@@ -1,26 +1,23 @@
 ---
 title: TTK4550 Specialization Project
 author: Tobias Bergkvist
-date: December 17th, 2019
+date: December 20th, 2019
 geometry: a4paper, margin=3cm
+numbersections: true
 header-includes: |
     \renewcommand{\vec}[1]{\mathbf{#1}}
-    \usepackage{amsmath} 
+    \usepackage{amsmath}
+abstract: |
+    When drilling for oil from a floating rig or a ship, the platform experiences a heaving motion due to the waves. As new pipe segments are connected, the pipe will follow the heaving motions of the platform - and be like a piston, causing large fluctuations in pressure that could lead to problems down the hole based on the weather conditions.
+
+    This project visualizes pressure simulation data from HeaveSIM (a simulator developed by HeaveLock) along with the well geometry in 3D by creating a web application with WebGL and THREE.js, using colors to paint the well geometry segments based on the simulated pressure.
+
+    The result of this is that it is possible to see whether there will be any problems when connecting a new pipe - and where along the well path these problems are located. This could save oil companies a lot of money and time - as it helps them decide wheteher it is safe to drill on a specific day given weather conditions - with less uncertainty and smaller margins than before. The resulting application itself is able to acheive a framerate of 60fps, and load in around 2 seconds - providing a comfortable user experience.
 ---
 
+\newpage{}
 \tableofcontents{}
 \newpage{}
-# Abstract
-# Sammendrag
-Når man driller etter olje fra en flytende rigg eller et skip, så gynger platformen opp og ned på grunn av bølgene. Normalt blir røret regulert så det står stille selv om platformen/skipet går opp og ned. Men når man skal skru på nye rørsegmenter må røret holdes fast. Dette fører til at røret gynger opp og ned sammen med platformen, og blir som et stempel - som fører til store propagerende trykkendringer.
-
-Dersom trykket blir for høyt eller lavt - kan dette føre til at berggrunnen i den nederste og åpne delen av brønnen slår sprekker eller kollapser inn.
-
-I midten av/ inne i brønnen har man det som kalles en pipe. Inne i pipen pumper man en væske nedover (borevæske) som går opp igjen på sidene og tar med seg stein, olje og gass. I riser/cased section har man metall rundt på utsiden der væsken kommer opp igjen, mens i "open hole" er det bare berggrunn rundt. Dersom trykket blir for høyt eller lavt kan det føre til at bergrunnen slår sprekker eller kollapser inn.
-
-Heavelock har laget en simulator som kan forutsi hvor store trykkendringene langs hele brønnbanen vil bli basert på værforhold og andre paramtere. Hensikten med denne prosjektoppgaven er å visualisere disse simuleringsresultatene på en intuitiv måte - slik at hvem som helst kan forstå den.
-
-Visualiseringen (i 3D) implementeres for nettlesere, kun ved hjelp av verktøy som er open-source/gratis å bruke. 
 
 # Structure
 There will be a lot of details and background material that this report does not cover. Instead, the report attempts to give a higher level and intuition-focused overview of what has been done, how the flow of ideas evolved along the way, which insights were acheived - and the resulting architecture of the final application. Only the code in its final form will be included. The code is where you should look, in case you wonder about actual implementation.
@@ -34,8 +31,23 @@ When drilling from a floating rig or drilling ship, the heaving motion of the fl
 ### HeaveLock and HeaveSIM
 HeaveLock is a startup in Trondheim that originally set out to create a valve to mitigate the pressure fluctuations caused by the heaving motion. On their way to acheiving this goal - they created a simulator to simulate the actual pressure fluctuations. It turned out that this tool in itself was very valuable to the oil industry - as it could predict whether it was safe to drill on any given day (given weather conditions, well geometry and fluid properties). This simulator was named HeaveSIM. HeaveSIM produces a range of output files in .txt and .csv formats. Being able to visualize the output data in an understandable and intuitive way is of importance to HeaveLock and their customers - and is the problem that this project work intends to solve. Note that HeaveSIM itself will be considered a black box - where we are only concerned with actually visualizing the input and output data, and not the implementation of HeaveSIM itself.
 
+## Scope
+The scope of this project is to create a web user interface with the following capabilities:
+
+  * Static 3D visualization in web of well trajectory including information on:
+    * Riser, casings and liners, open hole section
+  * Animated 3D visualization in web or colorized visualization of a chosen simulation
+    * Visualization of pressure along the annulus of the well
+    * Visualization of pressure along drill string
+    * Visualization of stress along drill string
+  * Cross browser compatibility
+    * The application should work in Internet Explorer, Edge, and mobile browsers on Android and iPhone.
+  * Performance
+    * The application should be performant, and provide an intuitive user experience.
+
+# Theory
 ## The HeaveSIM output data
-The HeaveSIM simulator produces a range of output files - organized in a folder structure. For the simulation "Connection_4749mMD" of "Well_2", we have the following structure (which is a mix of input and output files):
+Before we start thinking about how we are going to visualize the input/output data, it is probably a good idea to try to understand the structure of this data first - and what it represents. The HeaveSIM simulator produces a range of output files - organized in a folder structure. For the simulation "Connection_4739mMD" of "Well_2", we have the following structure (which is a mix of input and output files):
 
 `./HeaveSim simulations/Well_2/Connection_4739mMD/`
 
@@ -57,23 +69,16 @@ The HeaveSIM simulator produces a range of output files - organized in a folder 
 - `mainpumprate.txt`
 - `drillstringcontrol.txt`
 
-NOTE: For this project, only the files `geometrydef.txt`, `fluiddef.txt`, `well_path.csv`, `pipepressure.csv`, `annuluspressure.csv`, `pipestress.csv` will be used. The first three are input files, while the last three are output files.
+You might be wondering what "Well_2" and "Connection_4739mMD" means. Well_2 represents the actual well - and as you might be able to guess, there is also a well called Well_1 in this data set. As for Connection_4739mMD, this represents a specific simulation point in Well_2, where a new pipe segment is in the process of being connected, while the total length of the well is 4739 meters long.
 
-### About the .txt files
-The .txt files all have the following format:
+For this project, only the files `geometrydef.txt`, `fluiddef.txt`, `well_path.csv`, `pipepressure.csv`, `annuluspressure.csv`, `pipestress.csv` will be used. The first three are input files, while the last three are output files. This means the rest of the files will not be covered in this report.
 
-```
-1.2 # This is a description of what the value 1.2 means
-4   # This is another description for what the value 4 means
-```
-Notice how the value comes first on the line, and the comment/description comes after a `#`-symbol.
 
 ### `geometrydef.txt`
 
-
 The `geometrydef.txt`-file looks like the following (where the index represents the line number, starting at 0 for the first line).
 
-Notice that we have four main sections of our well (which we will call our geometry types). These are the riser, cased section, liner, and open section/open hole. The pipe, heavy hight drill pipe and BHA reside somewhere inside of these four sections.
+Notice that we have four main sections (which we will call our geometry types) of our well. These are the riser, cased section, liner, and open section/open hole. The pipe, heavy weight drill pipe and BHA reside somewhere inside of these four sections.
 
 | index | comment/description |
 |-   |----------------|
@@ -142,30 +147,30 @@ These files all have the same format. They also share the same time steps and me
 
 From this data you can observe the following:
 
- - The time of the simulation starts at 0.0, stops at 0.3 and has a step size of 0.1. (The first column represents the time)
- - The simulation has data for each timestep for the measure depths 50, 150 and 300. (The first row represents the measure depths)
+ - The time of the simulation starts at 0.0s, stops at 0.3s and has a step size of 0.1s. (The first column represents the time)
+ - The simulation has data for each timestep for the measure depths 50m, 150m and 300m. (The first row represents the measure depths)
  - The simulation values in this example increase as measure depth and time increases.
- - At measure depth = 300 meters, and time = 0.3 seconds, the value is 6.
+ - At measure depth = 300 meters, and time = 0.3 seconds, the value is 6 bar.
 
 A word of warning: The measure depths in these three output csv files do not match the measure depths used in the well path definition. To work around this, some kind of interpolation would be needed.
 
 ## How are we going to visualize this?
-Using web browser technology that is widely available across browsers, this project work is going to create a 3D visualization of the well path, and use colors to represent the values from the simulations on each of the segments. In terms of using browser technology: this is only made practical and performant in recent years by something known as WebGL (Web Graphics Library).
+Using web browser technology that is widely available across browsers, this project work is going to create a 3D visualization of the well path, and use colors to represent the values from the simulations on each of the segments. In terms of using browser technology: this is only made possible without the use of browser plugins in recent years by something known as Web Graphics Library. [@WebGL]
 
 WebGL is based on something called OpenGL, and allows the browser to utilize the GPU (hardware) for parallell processing. GPUs are typically what allows 3D-games with complex graphics to run smoothly on a computer or a mobile device. To get a better idea of how this can be done, we will look at how WebGL works.
 
 ### So how does WebGL work?
-More specifically, WebGL is a JavaScript API for rendering high-performance and interactive graphics (both 2D and 3D) without the use of plugins in any compatible web browser. The API can be used within the HTML5 `<canvas>` elements. Recently, WebGL 2 was released - but since it is not yet supported by all common browsers, this project will instead be using WebGL 1.
+More specifically, WebGL is a JavaScript API for rendering high-performance and interactive graphics (both 2D and 3D) without the use of plugins in any compatible web browser. The API can be used within the HTML5 `<canvas>` elements. Recently, WebGL 2.0 was released - but since it is not yet supported by all common browsers, this project will instead be using WebGL 1.0.
 
 To tell the GPU how to render our scene, we write something known as "shaders" in a language known as GLSL (OpenGL Shading Language). GLSL resembles a restricted version of the C programming language, but with syntactic sugar for vector and matrix operations.
 
-The two shaders that are supported by WebGL is the vertex shader and the fragment shader. The vertex shader is a piece of code that runs on every vertex of the geometry the gpu receives, and outputs this to the fragment shader. The fragment shader then runs on every pixel of the output image - giving each its own color. Usually, 3 and 3 vertices represent a triangle - which the fragment shader is aware of when coloring pixels. If two triangles overlap, the fragment shader might run twice on the same pixel. This is why it is called a fragment shader instead of a pixel shader - since it runs once for every fragment, but can sometimes run multiple times for any given pixel. You can think of a fragment as being a single pixel on a triangle, but not neccesarily the entirety of a single pixel in the final image that is rendered.
+The two shaders that are supported by WebGL are the vertex shader and the fragment shader. The vertex shader is a piece of code that runs on every vertex of the geometry the gpu receives, and outputs this to the fragment shader. The fragment shader then runs on every pixel of the output image - giving each its own color. Usually, 3 and 3 vertices represent a triangle - which the fragment shader is aware of when coloring pixels. If two triangles overlap, the fragment shader might run twice on the same pixel. This is why it is called a fragment shader instead of a pixel shader - since it runs once for every fragment, but can sometimes run multiple times for any given pixel. You can think of a fragment as being a single pixel on a triangle, but not neccesarily the entirety of a single pixel in the final image that is rendered.
 
 It is possible to pass parameters to the shaders from the outside. The first type of parameter is a uniform. This is a parameter that does not change from one shader invocation to the next within any particular rendering call. The second is a vertex attribute - which is a parameter specifically linked to a vertex, meaning it changes from one vertex shader invocation to the next within a rendering call, but stays the same from one render call to the next for a specific vertex.
 
 The WebGL API is low level - as you can only tell it what triangles to draw, and how to draw them. Imagine that you want to draw a cylinder, and have this cylinder reflect light in a certain way. This would both require a lot of JavaScript code, as well as GLSL code. Since we don't want to concern ourselves with how we can draw a cylinder using only triangles, or writing shaders for reflecting light - we will be using a 3D library that abstracts this away.
 
-The 3D library we will be using is THREE.js. This is by far the most popular 3D library for JavaScript, with 59,000 stars on GitHub, 1192 contributors, and 21,000 forks.
+The 3D library we will be using is THREE.js. This is by far the most popular 3D library for JavaScript, with more than 59,000 stars on GitHub, 1192 contributors, and 21,000 forks at the time is is being written. [@THREE.js]
 
 ### How does THREE.js work?
 To understand how THREE.js works, we need to understand the building blocks it uses to abstract away the low level API of WebGL.
@@ -223,7 +228,7 @@ const geometry = new THREE.CylinderBufferGeometry(radius, radius, height)
 ```
 
 #### Material
-The material defines which shaders will be used to render a certain geometry. Some examples of shaders are: MeshBasicMaterial, MeshStandardMaterial, RawShaderMaterial. The RawShaderMaterial allows us to write our own shaders from scratch, using GSLS.
+The material defines which shaders will be used to render a certain geometry. Some examples of shaders are: MeshBasicMaterial, MeshStandardMaterial and RawShaderMaterial. The RawShaderMaterial allows us to write our own shaders from scratch, using GLSL.
 
 ```js
 import * as THREE from 'three'
@@ -268,16 +273,65 @@ scene.add(light)
 ```
 
 #### Texture
-A texture can be used to map an image to a surface. For example, it could be used to put the image of a tree on one side of a cube. By writing our own shaders (using RawShaderMaterial), we can access individual pixels of a texture if we want. Textures are generally really performant, since no communication between the CPU and GPU is neccessary once the GPU has received the texture.
+A texture can be used to map an image to a surface. For example, it could be used to put the image of a brick wall on the sides of a cube. By writing our own shaders (using RawShaderMaterial), we can access individual pixels of a texture if we want. Textures are generally really performant, since no communication between the CPU and GPU is neccessary once the GPU has received the texture.
 
-Note that different devices might have different maximum limits on texture sizes.
+![Example of a brick wall image being applied as a texture to the sides of a cube geometry. Source: [@THREE-texture-example]](./texture-example.png){ width=256px }
 
-![Example of a brick wall image being applied as a texture to the sides of a cube geometry. Source: https://threejs.org/examples/#webgl_loader_texture_basis](./texture-example.png){ width=256px }
+#### Render Loop
+This is not really specific to THREE.js animations, but to any kind of animation. A render loop is a loop that rerenders an image of the scene as often as possible up to the refresh rate of your monitor. This is also a particularily performance-critical part of the code. If you want to max out your monitor refresh rate (which most likely is 60Hz), this means you can at most use 16.67 ms to run each iteration of your render loop. (Since $1000 \text{ms} / 60 = 16.67 \text{ms}$)
 
+## Measuring performance bottlenecks
+### Render loop
+Since performance is going to be a focus in this project work - we need a good way of measuring performance - to see where our bottlenecks actually are. In JavaScript, we have something called `performance.now()`, which will give us a high resolution timestamp ideal for measuring execution times. 
 
+```js
+const t = [0, 0, 0]
+const maxIterations = 1000
+let t0 = 0
+
+requestAnimationFrame(() => render(0))
+function render(iterationCount) {
+  t0 = performance.now()
+  // first instruction to measure
+  t[0] += performance.now() - t0
+
+  for (let i = 0; i < 100; i++) {
+    t0 = performance.now()
+    // instruction inside loop to measure
+    t[1] += performance.now() - t0
+
+    t0 = performance.now()
+    // another instruction inside loop to measure
+    t[2] += performance.now() - t0
+  }
+
+  if (iterationCount >= maxIterations) {
+    // Stops rendering and prints the timing results
+    console.log(t)
+  } else {
+    requestAnimationFrame(() => render(iterationCount + 1))
+  }
+}
+```
+
+Using this method, we are able to tell which lines of code in our render loop are taking the most time to execute. Rather than trying to randomly guess what needs to be optimized, this method gives us a clear answer of what the slowest part is. Although this method is not specifically mentioned later in the report - the actions taken when improving performance is based on measurement results from this method.
+
+### Load time
+Another important aspect of performance is the load time of the application. This is measured using the waterfall view in the Network Tab in Google Chrome DevTools [@DevTools]. Below are two examples (screenshots) from loading the finished website two times in a row:
+
+![](waterfall.png){ width=256 }
+![](waterfall-cached.png){ width=256 }
+
+Notice that the second time, the application loads almost twice as fast. This is because the application is utilizing the built-in caching behaviour in browsers. [@Caching] Optimizing the application for caching will improve second-time loads of the page. Minimizing the file sizes that are transferred will reduce the load times.
+
+The application is being hosted on a virtual machine located in Amsterdam using the cloud provider DigitalOcean. The virtual machine has a 25GB SSD, 2GB of RAM, and a single (shared) CPU core available. All of the requests are made from Trondheim in Norway.
+
+\newpage{}
 # Implementation
 ## Algorithm: Turning the well path into cylinders
-![To represent the well path, we are going to draw one cylinder for each segment. A consequence of using cylinders to represent each segment is that we will get visible gaps between when they are rotated relative to each other (as highlighted in the picture)](./cylinders.png){ width=256px }
+To represent the well path, we are going to draw one cylinder for each segment.
+
+![A consequence of using cylinders to represent each segment is that we will get visible gaps between when they are rotated relative to each other (as highlighted in the picture)](./cylinders.png){ width=256px }
 
 We define a cylinder to have the following properties:
 
@@ -353,18 +407,18 @@ $$
 You may now have noticed that we have every cylinder property wee need, except for one (the radius). The problem we are now faced with is that nothing in `well_path.csv` can tell us what the radius for a specific segment is supposed to be. To figure out this, we have to look at `geometrydef.txt` (which defines the different types of segments).
 
 ## Algorithm: Finding the cylinder radiuses/geometry types
-Let $g[n]$ represent the value at index/line number n according to the geometrydef.txt from the introduction. Let $\text{inches}(x)$ be a function that converts $x$ from inches to meters. Note that the riser is considered to be part of the cased section (which means that "length of cased section" includes the length of the riser). We will differentiate the riser from the rest of the cased section since they have different radii.
+Let $g[n]$ represent the value at index/line number n according to the geometrydef.txt from the introduction. Let $\text{from\_inches}(x)$ be a function that converts $x$ from inches to meters. Note that the riser is considered to be part of the cased section (which means that "length of cased section" includes the length of the riser). We will differentiate the riser from the rest of the cased section since they have different radii.
 
 From this, we define our geometry types:
 
 | name          | radius | md_start | md_stop |
 |---------------|--------|----------|---------|
-| riser         | $0.5 \cdot \text{inches}(g[1])$ | 0 | $g[2]$
-| cased section | $0.5 \cdot \text{inches}(g[3])$ | $g[2]$ | $g[4]$
-| liner         | $0.5 \cdot \text{inches}(g[5])$ | $g[4]$ | $g[4]+g[6]$
-| open hole     | $0.5 \cdot \text{inches}(g[0])$ | $g[4]$ + $g[6]$ | $g[7]+g[8]+g[9]$
+| riser         | $0.5 \cdot \text{from\_inches}(g[1])$ | 0 | $g[2]$
+| cased section | $0.5 \cdot \text{from\_inches}(g[3])$ | $g[2]$ | $g[4]$
+| liner         | $0.5 \cdot \text{from\_inches}(g[5])$ | $g[4]$ | $g[4]+g[6]$
+| open hole     | $0.5 \cdot \text{from\_inches}(g[0])$ | $g[4]$ + $g[6]$ | $g[7]+g[8]+g[9]$
 
-Using this table, it is now possible to set the radius on the cylinders from the previous section. Let the function $\text{geometry\_radius}(md)$ return the radius from the geometry type table above for which $\text{md\_start} < md \leq \text{md\_stop}$. If no entry matches, return 0.
+Using this table, it is now possible to set the radius of the cylinders that was missing in the previous section. Let the function $\text{geometry\_radius}(md)$ return the radius from the geometry type table above for which $\text{md\_start} < md \leq \text{md\_stop}$. If no entry matches, return 0.
 
 $$
 radius[n] := \text{geometry\_radius}(md[n])
@@ -373,12 +427,12 @@ $$
 Now that we have all our path segment properties for creating cylinders, let's create them in THREE.js and render them.
 
 ## Rendering the well path with THREE.js
-Using real-life lengths and radiuses make the pipe appear incredibly thin and long. This is not good for visualization purposes, since the path and the color of the cylinders are hard if not impossible to see from far away.
+Using real-life lengths and radiuses make the pipe appear incredibly thin and long. This is not good for visualization purposes, since the path and the color of the cylinders are very hard if not impossible to see from far away.
 
 ![](./thin-path.png){ height=128px }
 ![](./thick-path.png){ height=128px }
 
-To solve this problem, we multiply the radius by a factor of 100 for all of the segments, and move a little backwards. The entire well path is now clearly visible at the same time, as you can see in the second picture. In total, around 1700 cylinders is rendered in the pictures above.
+To solve this problem, we multiply the radius by a factor of 100 for all of the segments, and move a little backwards. The entire well path is now clearly visible at the same time, as you can see in the second picture. In total, around 1700 cylinders are rendered in the pictures above.
 
 Now, this is all well and good - but how can we color each segment independently according the simulation data? Let's start by loading `pipepressure.csv` into the application.
 
@@ -428,11 +482,11 @@ And guess what, this operation took less than a second. The resulting image is a
 This means that first of all, we might no longer need to load 8MB of data, and secondly, we don't need to wait half a minute on a laptop/crash the mobile browser due to running out of memory. It seems that a lot of problems are going to be solved. The next step now is to read the image in to the client.
 
 ## Loading the image in to the client
-We already discussed how iterating over all of the segments and sending 1700 colors to the gpu on every frame affected performance. Now that we have an image, we should in theory be able to transfer this to the GPU as a texture, and perform the pixel lookups on the image from within the GPU! For this we would have to write our own GLSL shaders (using RawShaderMaterial in THREE.js).
+We already discussed how iterating over all of the segments and sending 1700 colors to the gpu on every frame affected performance. Now that we have an image, we should be able to transfer this to the GPU as a texture, and perform the pixel lookups on the image from within the GPU! For this we would have to write our own GLSL shaders (using RawShaderMaterial in THREE.js).
 
-Something else that has been affecting performance (which was not mentioned previously) is the fact that we have 1700 meshes in our scene, which the renderer has to iterate over for every frame on the cpu. To fix this, we could in theory merge all the cylinder geometries into a single geometry. To differentiate between the cylinders (from within the GPU), we could give all the vertices in each cylinder a vertex attribute, to tell us which measure depth it represents. Or even better, we just tell it which row of the image/texture it represents.
+Something else that has been affecting performance (which was not mentioned previously) is the fact that we have 1700 meshes in our scene, which the renderer has to iterate over for every frame on the cpu. To fix this, we will merge all the cylinder geometries into a single geometry. To differentiate between the cylinders (from within the GPU), we then give all the vertices in each cylinder a vertex attribute, to tell us which measure depth it represents. Or even better, we just tell it which row of the image/texture it represents.
 
-We would then also give the current time as the image column (using a uniform) to the shader material we will be applying on the entire geometry.
+We will then also give the current time as the image column (using a uniform) to the shader material we will be applying on the entire geometry.
 
 This means that every vertex now has both a texture column and a texture row to look at - yielding a single pixel. One single color for each vertex. Since each cylinder shares the same image row, all its vertices will have the same color. 
 
@@ -442,13 +496,13 @@ To sum up, the following will determine the color of each cylinder:
  - An image row (vertex attribute) that was assigned to all the vertices of each cylinder
  - An image column (uniform passed to all vertex shaders). 
 
-As previously mentioned, however - it would be ideal not to have to write our own shaders from scratch (with light reflections and everything). Turns out we are in luck, since there exists a library called THREE.BAS.
+As previously mentioned, however - it would be ideal not to have to write our own shaders from scratch (with light reflections and everything). Turns out we are in luck, since there exists a library called THREE.BAS. [@THREE.BAS]
 
 ### What is THREE.BAS?
 THREE.BAS (THREE Buffer Animation System) is a library that allows us to reuse the materials in THREE.js, while injecting our own shader code snippets in a relatively clean way. This means we only need to write the shader code for the exact logic we need - while we are able to reuse the rest of the shader code that THREE.js already wrote for us - except we now control the color from the inside of the gpu instead of the outside. Essentially, we don't need to use RawShaderMaterial directly after all.
 
 ### What happens to performance now?
-First we compute the imageRow for every cylinder geometry, and set this as a buffer attribute every vertex in the cylinder. Next, all the cylinders are merged together into a single geometry (carrying over their attributes).
+First we compute the imageRow for every cylinder geometry, and set this as a buffer attribute on every vertex in the cylinder. Next, all the cylinders are merged together into a single geometry (carrying over their attributes).
 
 This geometry is combined with a custom `THREE.BAS`-material to pick color based on imageRow (attribute) and imageColumn (uniform). In the main render loop, we change the imageColumn uniform of the material for every time step. Instead of sending 1700 colors every time step, we now only send one number: the imageColumn. It is unlikely that it is possible to reduce the amount of data sent between the cpu and gpu each timestep by more than this.
 
@@ -483,7 +537,7 @@ This could lead to a cylinder receiving either a negative imageRow, or one great
 
 It seems like we still need to load `pipepressure.csv` into the browser to do what we want - or do we?
 
-## Creating a Python API.
+## Creating a Python HTTP-API.
 To avoid sending unneccesary data to the client, we will create a Python API - which will be responsible for generating images dynamically/on demand (as previously seen), as well as creating and returning a list of the cylinder data structures, which in their final form have the following properties:
 
 | name     | description |
@@ -500,9 +554,10 @@ To avoid sending unneccesary data to the client, we will create a Python API - w
 
 Doing this means that all of the "hard work"/most of the algorithms are offloaded to the server, and only the bare minimum data needed for visualization needs to be loaded by the client. Another advantage is that the API can be protected by a password - to prevent unrestricted access to data.
 
-Along with the API, we also create a reverse proxy, which routes any url paths starting with /api, and /docs to the Python API instead of to the client resources (such as index.html, css files and javascript bundles). This is to avoid thinking about Cross Origin Resource Sharing (CORS), which can be its own adventure.
+Along with the API, we also create a reverse proxy, which routes any url paths starting with /api, and /docs to the Python API instead of to the client resources (such as index.html, css files and javascript bundles). This is to avoid thinking about Cross Origin Resource Sharing (CORS), which can be its own adventure. [@CORS]
 
 At last we have finally met our performance goals. Having both a high framerate, and a low load-time for our application. The client is still loading several hundred kB of data. It is likely that it would be possible to reduce this even more - using a more compact packing format for the geometry data.
+
 
 ## Additional functionality
 ### An interactive timeline displaying the image
@@ -512,7 +567,7 @@ At the bottom of the application, we will create an interactive timeline - which
 At the end of each geometry type, we have what is known as a casing shoe. These are visualized as rings in the client - along with labels. The idea is to make it clear where these transitions happen - as the change in radius of the segments might not be big enough to be noticable. The labels are also useful in showing what the actual sections are called.
 
 ### A GUI Config Panel
-Using the JavaScript library `dat.gui`, we are able to create a GUI panel in the application where you can do things like select well and connection for a simulation, set the thresholds used for generating an image, show or hide the casing shoes/labels, an fps counter.
+Using the JavaScript library `dat.gui` [@DAT.GUI], we are able to create a GUI panel in the application where you can do things like select well and connection for a simulation, set the thresholds used for generating an image, show or hide the casing shoes/labels, an fps counter.
 
 ### Cross-Browser compatibility
 A lot of work has been put in to making the application work in as many browsers as possible. This includes browsers such as Google Chrome, Mozilla Firefox, Mobile Browsers (iOS and Android), Internet Explorer 11 and Microsoft Edge.
@@ -520,46 +575,123 @@ A lot of work has been put in to making the application work in as many browsers
 Some of the steps taken to ensure this is the following
 
 #### Transpilation
-JavaScript code is "transpiled" to an older version of the JavaScript standard. That is - its syntax is transformed to a less elegant, but older version of the language that is supported by more browsers. The transpilation step is performed using the bundler "FuseBox v4" in this project. FuseBox also "minifies" the code - renaming variables to shorter names and removing all whitespace. This is a common step for minimizing the amount of data the browser has to load.
+JavaScript code is "transpiled" to an older version of the JavaScript standard. That is - its syntax is transformed to a less elegant, but older version of the language that is supported by more browsers. The transpilation step is performed using the bundler "FuseBox v4" in this project. [@FuseBox] FuseBox also "minifies" the code - renaming variables to shorter names and removing all whitespace. This is a common step for minimizing the amount of data the browser has to load.
 
 #### Polyfills
 Although you can transpile the syntax to an older version, this isn't always enough. When a new feature has been added to JavaScript and you are using it - you will need to include a "polyfill" for this feature. This means you include an implementation of the feature in the older standard - which can be used in case the browser has not implemented the more recent feature.
 
 Even though you make sure to transpile and include polyfills for all the features you are using, this is usually not enough - and ultimately, physically or automatically testing in each of the browsers is the best way of figuring out if it works or not.
 
-To give an example - the WebGL implementation on iOS has a maximum texture size of 4096x4096. Breaking this limit simply causes the texture to become entirely black within WebGL. Having a texture of size 73x4320 means it will work in Google Chrome on your laptop - but just be entirely black on your phone.
+To give an example - the WebGL implementation on iOS has a maximum texture size of 4096x4096. Breaking this limit simply causes the texture to become entirely black within WebGL. Having a texture of size 73x4320 means it will work in Google Chrome on your laptop - but just be entirely black on your phone. Source: Error messages and testing
 
 #### Touch vs Mouse
-Touch displays are also different than mouse controls - and should be tested as well. For example: to enhance range inputs on touch displays (used for the timeline), a library called rangetouch was used.
+Touch displays are also different than mouse controls - and should be tested as well. For example: to enhance range inputs on touch displays (used for the timeline), a library called rangetouch was used. [@RangeTouch]
 
 #### Stylesheets
-The different browsers usually all have their own default styles, which might need to be reset - or even set in different ways for different browsers. An example of this is the view-height problem on mobile devices. Or the styling of the range input.
+The different browsers usually all have their own default styles, which might need to be reset - or even set in different ways for different browsers. An example of this is the view-height problem on mobile devices. [@ViewportMobile] Or the styling of the range input. [@RangeInputStyle]
 
 ## The final architecture
+The result is a client- server architecture:
+
 ![](./architecture.png)
 
-# Conclusion
-blablabla
+The available API endpoints are:
+
+- `/api/`
+  - Does not require authentication. Will display a welcome message. Useful for checking if the API is running.
+
+- `/api/simulations`
+  - Returns an object of available wells and connections as JSON.
+
+- `/api/simulations/{well}`
+  - Returns a list of the available connections for a specific well as JSON.
+
+- `/api/simulations/{well}/{connection}`
+  - Returns the geometry for a specific well or simulation as JSON. This includes casing shoes, simulation start/stop time, and the centre point of the entire geoemtry (used for centering the camera).
+
+- `/api/simulations/{well}/{connection}/pipepressure.png`
+
+- `/api/simulations/{well}/{connection}/annuluspressure.png`
+
+- `/api/simulations/{well}/{connection}/pipestress.png`
+  - These three all return images that are mapped onto the geometry and displayed on the timeline. Here you can also pass query parameters like `vmin`, `vmax` and `cmap` to specify thresholds and colormap in the url.
+
+You can also access the autogenerated documentation for this at the url path `/docs` in the application.
 
 # User Guide
+When opening the web application the first time - you will be asked for an API key/a password. This prompt will keep appearing until you have successfully authenticated with the API. After this, the key will be stored as a cookie in your browser - so that you won't need to enter it again the next time you open the website. See the first picture below.
 
-![When first opening the web application - the first thing that happens is that you will be asked for an API key/a password. This prompt will keep appearing until you have successfully authenticated with the API. After this, the key will be stored as a cookie in your browser - so that you won't need to enter it again.](./auth.png)
+![](./auth.png){ height=220px }
+![](./overview.png){ height=220px }
 
-![Notice that there are 4 different GUI elements available. #1 is the control panel. Clicking each of the folders will cause them to expand, revealing related configuration. #2 is the actual 3D-visualization. To zoom in an out, use the scroll wheel on your mouse, or pinch with two fingers on your phone. To rotate - left click with the mouse or drag using a single finger. To pan/translate sideways, hold right click on your mouse and drag, or drag using two fingers on a touch display. #3 is the timeline, as well as a 2D visualization of the simulation output (in the form of a heatmap). The cursor shows which column of the image is currently being displayed/drawn onto the 3D-figure. #4 displays the current time as well as the current time speedup in parenthesis, and clicking on it/touching it will pause the application and change its color to red. Click it again to resume.](./overview.png)
+Notice that there are 4 different GUI elements available in the second picture above. 
 
-![](./config.png)
+1. is the control panel. Clicking each of the folders will cause them to expand, revealing configuration options for what will be displayed. 
 
-# Further Work
-## Get the min/max thresholds of the image from the api
-## Allow for defining discrete colormap
-## Show location of pipe
-## Fix race condition
-## Performance problems with range input rapid updates in some browsers
+2. is the actual 3D-visualization. The controls are as follows:
 
-Get the min/max thresholds of the image from the api.
-Show the thresholds 
-Allow for defining a discrete colormap with custom thresholds.
+|action|using mouse|using touch display on phone|
+|-|-|-|
+|zoom  | use mouse wheel      | pinch with two fingers
+|rotate| left click and drag  | drag with one finger
+|pan   | right click and drag | drag with two fingers
 
+3. is the timeline, as well as a 2D visualization of the simulation output (in the form of a heatmap). The cursor shows which column of the image is currently being displayed/drawn onto the 3D-figure. Note that in some browsers, the cursor will be lagging behind what is actually drawn. This seems to work the best in mobile browsers or Google Chrome. Note that you can click on the timeline or drag the cursor to where you want it to be.
+
+4. displays the current time as well as the current time speedup in parenthesis This is also a button which will play/pause the animation. When playing, the button is gray - but when paused, it switches to a dark red color (maroon).
+
+![](./config.png){ height=256px }
+
+The configuration menu in the picture above has a few different settings:
+
+ - **well** decides which well to visualize in the 3D-view.
+
+ - **connection** decides which simulation point (drilling depth/connection) to visualize for a specific well. The higher the number in the connection name, the longer the drawn path will be. It is called connection, because this is when the pipe is being held fastened to the platform in order to connect a new pipe segment.
+ 
+ - **radiusScaling** decides which multiplier to use for the radius. A higher value will make the well path appear thicker. A lower value will make the well path appear thinner. This requires refetching from the API, since the API carries out these multiplications.
+ 
+ - **simulation** decides which of the output csv files to visualize along the well path and in the timeline for a specific well and connection.
+ 
+ - **colormap** decides which color sequence will be used to represent the different values in the simulation data.
+ 
+ - **customThresholds** allows the user to specify custom min and max values that are used when coloring the resulting image. If this is turned off, the min and max values of the data itself will be used. Turning it on will reveal two more inputs (vmin and vmax) which represent the custom min and max values that will be used.
+
+ - **reflectiveSurface** will allow you to turn on or off the light reflections in the visualization. The light can help you get a better spatial feel of the well geometry, but will make the colors less clear. Turning the reflectiveSurface off can be good if you want a more precise view of the colors.
+
+ - **showCasingShoes** will show the rings and labels at the bottom of each geometry type of the well. These rings and labels can be turned off, so that you only see the well itself. This can also be useful, along with turning reflectiveSurface off when you want to get a clear view of how the colors are changing.
+
+ - **showFps** will display an FPS-counter in the corner. This doesn't really add anything to the visualization, other than the ability to debug potential performance problems.
+
+ - **timelineSpeedup** allows you to speed up the playback speed of the animation/cursor on the timeline. It can sometimes be difficult to notice changes that happen very slowly. That's why this option exists, so that you can make the slow changes appear less slow.
+
+
+# Conclusion and Further work
+The goal of this project was to create a dynamic 3D visualization for the output of HeaveSIM. The idea was to be able to discover whether it is safe to drill on any given day based on weather conditions - and if not, where along the well path the problems would arise.
+
+Using a Python backend API, along with a frontend written in TypeScript [@TypeScript] - with THREE.js, an application able to visualize the well path in 3D, with dynamic colors was created.
+
+With the application it is possible to successfully track pressure waves as they propagate down the well path - and set custom margins to detect if the fluctuations are too big. It also visualizes the fluctuations in 2D - using a heatmap image.
+
+The application has also been deployed to a virtual machine in the cloud - protected behind an API key (available as a demo). It works across multiple web browsers, including Internet Explorer, Microsoft Edge, Safari on iOS, Google Chrome on Android as well as Google Chrome and Firefox on desktop computers. It does so with good performance - reaching 60 frames per second while animating the colors and rotating.
+
+The resulting application should be able to save oil companies a lot of money - since they now can insert the current weather conditions into HeaveSIM, and see in 3D how the pressure changes along the well path. This can tell the oil company whether they can start drilling, or need to wait for waves and weather conditions to subside - with lower margins than previously possible.
+
+
+While the application already has a lot of features and functionality, there is still a lot of room for improvement. A list of points to concider for further work on this project are:
+
+- The ability to remember configuration using browser storage/cookies
+
+- Showing a colorbar on the side to inform the user of which values the colors actually represent
+
+- A transparent visualization - showing the pipe, heavy weight drill pipe and BHA inside of the well path.
+
+- Using https (SSL encrypted traffic) for the deployment. This would be added to the proxy configuration.
+
+- Set up continous deployment from a GitHub repository: Whenver changes are made to the code, the server will automatically download the new code and restart.
+
+- Currently, when switching well or image too quickly - a race condition can occur. This can be fixed by cancelling the previous request/ignoring the reply if a new one is made.
+
+- The range input used for the timeline has some performance problems with updating the thumb/cursor very often in some browsers. This could be further investegated and hopefully fixed.
 
 
 # Abbreviations and terms
@@ -570,57 +702,27 @@ Allow for defining a discrete colormap with custom thresholds.
 - CSS - Cascading Style Sheets
 - URL - Uniform Resource Locator
 - CPU - Central Processing Unit
-- GPU - Grahpics Processing Unit
+- GPU - Graphics Processing Unit
 - JSON - JavaScript Object Notation
-- UI - User Interface
 - JS - JavaScript
-- WASM - WebAssembly
-- C# - A programming language by Microsoft
+- TS - TypeScript
 - WebGL - Web Graphics Library
 - IE11 - Internet Explorer 11 (Web browser by Microsoft)
 - csv - Comma Separated Values (file format)
 
 ## Terms
- - Transpilation
- - Polyfills
- - Bundler
- - Container (in the context of docker)
- - Scene
- - Camera
- - Renderer
- - Mesh
- - Geometry
- - Material
- - Texture
- - Light
- - Syntatcic Sugar
- - Reverse proxy
- - Cross Origin Resource Sharing (CORS)
+ - Transpilation: The act of transforming the syntax of code from one version of the language to another.
 
+ - Polyfills: Code snippets that insert newer functionality that has not yet been implemented in an older version of the language.
 
-# Benchmarks
-## JavaScript vs WebAssembly
-The examples are from [https://takahirox.github.io/WebAssembly-benchmark/](https://takahirox.github.io/WebAssembly-benchmark/)
+ - Bundler: A piece of software that bundles dependencies together, and packages them in an efficient format to serve to a client. A bundler will often also perform transpilation for you.
 
-| Test name            | JavaScript (average [ms]) | WebAssembly (average [ms]) | ratio |
-|----------------------|---------------------------|----------------------------|-------|
-| collisionDetection   |  287.4815                 | 426.3495                   |  0.6743 |
-| Fibonacci            |  638.0810                 | 270.7280                   |  2.3569 |
-| ImageConvolute       |   42.0985                 |  58.4185                   |  0.7206 |
-| ImageGrayscale       |    1.4378                 |  10.3431                   |  0.1390 |
-| ImageThreshold       |    9.9412                 |  11.6082                   |  0.8564 |
-| MultiplyInt          | 2584.8935                 | 185.2885                   | 13.9506 |
-| MultiplyDouble       | 2592.6175                 | 477.4770                   |  5.4298 |
-| MultiplyIntVec       |   70.5495                 |  72.8155                   |  0.9689 |
-| MultiplyDoubleVec    |   83.4600                 | 111.8535                   |  0.7462 |
-| QuicksortInt         |  590.5060                 | 413.8590                   |  1.4268 |
-| QuicksortDouble      |  282.6930                 | 223.1245                   |  1.2670 |
-| SumInt               |  161.0785                 | 114.3445                   |  1.4087 |
-| SumDouble            |   69.9845                 | 111.1935                   |  0.6294 |
-| VideoConvolute       |   27.0100                 |  32.2330                   |  0.8380 |
-| VideoGrayscale       |    1.0840                 |   8.7225                   |  0.1243 |
-| VideoMarkerDetection |    6.4125                 |  11.4205                   |  0.5615 |
-| VideoThreshold       |    5.2104                 |  12.7440                   |  0.4089 |
+ - Syntatcic Sugar: Syntax within a language designed to make things easier to read or express.
+
+ - Reverse proxy: A server that receives requests, and forwards them somewhere else. The requests can be filtered and sent to different places based on things like the url path, or the hostname.
+
+ - Cross Origin Resource Sharing (CORS): Modern browsers have implemented a security policy to make it harder for a website to access data from other websites without the permission of that other website/server. The server has to explicity tell the browser that a specific website is allowed to read its response.
+
 
 # Picking a 3D library for JavaScript
 
@@ -634,9 +736,9 @@ Selection criteria:
 
 \newpage{}
 
-### Alternatives for WebGL libraries
+## Alternatives for WebGL libraries
 
-| Name           | Unity3D for Web |
+| Name           | Unity3D for Web [@Unity3D] |
 |----------------|-----------------|
 | Description    | Game engine. Compiles C# to produce WASM and WebGL-code.
 | 3D-capabilites | Yes
@@ -645,7 +747,7 @@ Selection criteria:
 | Accessibility  | Mobile browsers are not supported. Neither is IE11.
 | Price          | Commerical: Free personal, $99 professional
 
-| Name           | d3.js (Data Driven Documents) |
+| Name           | d3.js [@d3.js] |
 |----------------|-------------------------------|
 | Description    | JavaScript library for data visualization.
 | 3D-capabilites | Lacking by default. Need to combine it with a third party library.
@@ -654,7 +756,7 @@ Selection criteria:
 | Accessibility  | Not a problem
 | Price          | Open-source/free
 
-| Name           | THREE.js:  |
+| Name           | THREE.js: [@THREE.js] |
 |----------------|----------|
 | Description    | JavaScript 3D library.
 | 3D-capabilites | Yes
@@ -663,7 +765,7 @@ Selection criteria:
 | Accessibility  | Not a problem
 | Price          | Open-source/free
 
-| Name           | Babylon.js |
+| Name           | Babylon.js [@Babylon.js] |
 |----------------|------------|
 | Description    | A JavaScript framework for creating 3D-games.
 | 3D-capabilites | Yes
@@ -673,19 +775,7 @@ Selection criteria:
 | Price          | Open-source/free
 
 
-### The choice: THREE.js
-Based on the selection criteria - it is clear that THREE.js scores highest on all counts, and will therefore be the tool of choice for this project.
-
-
-### ----
-Accessibility in this case is superior. (https://threejs.org/docs/#manual/en/introduction/Browser-support)
-This could work in Internet Explorer 11, Microsoft Edge, Google Chrome, Firefox, Opera, Safari, as well as modern mobile browsers.
-
-This is likely the alternative which has the biggest challenges when it comes to performance - as JavaScript is an interpreted language. OpenGL Shading Language (GLSL) allows for writing code that is compiled on the gpu. In theory, having most of the work-intensive code written here could help deal with performance issues.
-
-The ability to write code in a highly abstracted scripting language is great for extensibility, as the time investment of extending the system with UI components is low.
-
-
+## The choice: THREE.js
+Based on the selection criteria - it is clear that THREE.js scores highest on all counts, and will therefore be the tool of choice for this project. THREE.js also seems to provide better performance than Babylon.js [@THREEvsBabylon]
 
 # References
-THREE.js vs BabylonJS performance: http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1228221&dswid=-857
