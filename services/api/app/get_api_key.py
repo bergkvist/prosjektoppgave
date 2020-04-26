@@ -5,15 +5,15 @@
 from fastapi.security.api_key import APIKeyQuery, APIKeyCookie, APIKeyHeader
 from fastapi import Security, HTTPException
 from starlette.status import HTTP_403_FORBIDDEN
-from dotenv import load_dotenv
 import os
 
-load_dotenv(verbose=True)
 API_KEY = os.environ['API_KEY']
+if not API_KEY:
+    print('API_KEY is not set! Exiting...')
+    exit(1)
 api_key_query = APIKeyQuery(name='api_key', auto_error=False)
 api_key_header = APIKeyHeader(name='api_key', auto_error=False)
 api_key_cookie = APIKeyCookie(name='api_key', auto_error=False)
-
 
 async def get_api_key(
     api_key_query: str = Security(api_key_query),
