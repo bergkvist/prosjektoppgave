@@ -1,5 +1,7 @@
 ---
-title: TTK4550 Specialization Project
+title: |
+  3D Visualization of HeaveSIM Simulation Data in Web \
+  (TTK4550 Specialization Project)
 author: Tobias Bergkvist
 date: December 20th, 2019
 geometry: a4paper, margin=3cm
