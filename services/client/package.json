@@ -17,7 +17,7 @@
     "rangetouch": "^2.0.0",
     "rxjs": "^6.5.3",
     "stats.js": "^0.17.0",
-    "three": "^0.110.0",
+    "three": "^0.125.0",
     "three-bas": "^2.10.1"
   },
   "devDependencies": {
